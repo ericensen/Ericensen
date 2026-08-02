@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ericensen Home</title>
+    <meta
+      name="description"
+      content="A personal homepage and app hub for Ericensen, with NameHat and a simple block stacking game."
+    >
+    <meta name="theme-color" content="#f7f5ef">
+    <meta property="og:title" content="Ericensen Home">
+    <meta property="og:description" content="A flexible personal app hub with small tools and projects.">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand-mark" href="#home" aria-label="Ericensen home">
+          <span class="brand-sigil" aria-hidden="true">E</span>
+          <span>
+            <strong>Ericensen</strong>
+            <small>personal app hub</small>
+          </span>
+        </a>
+        <nav class="top-nav" aria-label="Primary navigation">
+          <a href="#home" data-nav="home">Home</a>
+          <a href="#namehat" data-nav="namehat">NameHat</a>
+          <a href="#blocks" data-nav="blocks">Blocks</a>
+        </nav>
+      </header>
+
+      <main id="main">
+        <section id="home-view" class="view active-view" aria-labelledby="home-title">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="eyebrow">Ericensen HQ</p>
+              <h1 id="home-title">One clean place for the tools you reach for.</h1>
+              <p class="hero-subtitle">
+                A fast personal homepage for small apps, experiments, and useful links.
+              </p>
+              <div class="hero-actions">
+                <a class="button primary" href="#namehat">Open NameHat</a>
+                <a class="button quiet" href="#apps">Browse apps</a>
+              </div>
+            </div>
+
+            <div class="hub-visual" aria-label="Ericensen app map">
+              <canvas id="hub-canvas" width="720" height="520"></canvas>
+              <div class="hub-chip chip-one">NameHat</div>
+              <div class="hub-chip chip-two">Blocks</div>
+              <div class="hub-chip chip-three">Projects</div>
+            </div>
+          </div>
+
+          <section id="apps" class="section-block" aria-labelledby="apps-title">
+            <div class="section-heading">
+              <p class="eyebrow">Apps</p>
+              <h2 id="apps-title">Ready now</h2>
+            </div>
+            <div id="app-grid" class="app-grid" aria-label="Available apps"></div>
+          </section>
+
+          <section class="section-block split-band" aria-labelledby="next-title">
+            <div>
+              <p class="eyebrow">Flexible by design</p>
+              <h2 id="next-title">Add the next idea without rebuilding the place.</h2>
+            </div>
+            <p>
+              New tools can be added to the app registry in one file, keeping the homepage steady
+              while the collection grows.
+            </p>
+          </section>
+        </section>
+
+        <section id="namehat-view" class="view" aria-labelledby="namehat-title">
+          <div class="tool-header">
+            <div>
+              <p class="eyebrow">Private random picker</p>
+              <h1 id="namehat-title">NameHat</h1>
+              <p class="tool-subtitle">Speak, paste, edit, and draw names without paper slips.</p>
+            </div>
+            <div class="tool-stats" aria-label="Name totals">
+              <span><strong id="name-total">0</strong>Total</span>
+              <span><strong id="remaining-total">0</strong>Left</span>
+              <span><strong id="drawn-total">0</strong>Drawn</span>
+            </div>
+          </div>
+
+          <div class="namehat-layout">
+            <section
+              class="tool-panel capture-panel collapsible-tile"
+              aria-labelledby="capture-title"
+              data-collapsible-tile
+              data-tile-label="Capture"
+            >
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Capture</p>
+                  <h2 id="capture-title">Name list</h2>
+                </div>
+                <div class="panel-actions">
+                  <button id="listen-button" class="icon-button mic-button" type="button" aria-label="Start voice capture">
+                    <span aria-hidden="true"></span>
+                  </button>
+                  <button
+                    class="tile-toggle"
+                    type="button"
+                    aria-label="Collapse Capture"
+                    aria-expanded="true"
+                    aria-controls="capture-body"
+                    data-tile-toggle
+                  >
+                    <span aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="capture-body" class="tile-body">
+                <label class="field-label" for="name-input">Names</label>
+                <textarea
+                  id="name-input"
+                  rows="6"
+                  spellcheck="false"
+                  placeholder="Alice, Ben, Carmen..."
+                ></textarea>
+                <div class="capture-actions">
+                  <button id="parse-button" class="button primary" type="button">Update List</button>
+                  <button id="clear-input-button" class="button ghost" type="button">Clear Text</button>
+                </div>
+                <p id="voice-status" class="status-line" role="status"></p>
+
+                <form id="add-name-form" class="add-name-form">
+                  <label class="field-label" for="single-name-input">Add one</label>
+                  <div class="inline-field">
+                    <input id="single-name-input" type="text" autocomplete="off" placeholder="New name">
+                    <button class="button quiet" type="submit">Add</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section
+              class="tool-panel list-panel collapsible-tile"
+              aria-labelledby="list-title"
+              data-collapsible-tile
+              data-tile-label="Roster"
+            >
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Roster</p>
+                  <h2 id="list-title">Current names</h2>
+                </div>
+                <div class="panel-actions">
+                  <button id="reset-draws-button" class="button ghost" type="button">Reset Draws</button>
+                  <button id="clear-roster-button" class="button ghost danger" type="button">Clear Roster</button>
+                  <button
+                    class="tile-toggle"
+                    type="button"
+                    aria-label="Collapse Roster"
+                    aria-expanded="true"
+                    aria-controls="roster-body"
+                    data-tile-toggle
+                  >
+                    <span aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+              <div id="roster-body" class="tile-body">
+                <div id="name-list" class="name-list" aria-live="polite"></div>
+                <p id="empty-list" class="empty-state">No names yet.</p>
+              </div>
+            </section>
+
+            <section class="draw-stage" aria-labelledby="draw-title">
+              <div
+                class="draw-surface collapsible-tile"
+                data-collapsible-tile
+                data-tile-label="Draw"
+              >
+                <div class="panel-heading draw-heading">
+                  <div>
+                    <p class="eyebrow">Draw</p>
+                    <h2 id="draw-title">Ready when the phone is passed.</h2>
+                  </div>
+                  <button
+                    class="tile-toggle"
+                    type="button"
+                    aria-label="Collapse Draw"
+                    aria-expanded="true"
+                    aria-controls="draw-body"
+                    data-tile-toggle
+                  >
+                    <span aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div id="draw-body" class="tile-body draw-body">
+                  <div class="draw-meter" aria-hidden="true">
+                    <span id="draw-meter-bar"></span>
+                  </div>
+                  <button id="draw-button" class="draw-button" type="button">Draw Name</button>
+                  <div class="draw-footer">
+                    <span id="draw-message">Add names to begin.</span>
+                    <button id="toggle-history-button" class="text-button" type="button">Show drawn</button>
+                  </div>
+                  <ol id="draw-history" class="draw-history" hidden></ol>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div id="draw-modal" class="draw-modal" role="dialog" aria-modal="true" aria-labelledby="drawn-name-label" hidden>
+            <div class="draw-modal-panel">
+              <p id="drawn-name-label" class="eyebrow">Drawn name</p>
+              <p id="drawn-name" class="drawn-name"></p>
+              <div class="modal-actions">
+                <button id="redraw-name-button" class="button ghost small-button" type="button">Redraw</button>
+                <button id="hide-name-button" class="button primary" type="button">Close Name</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="blocks-view" class="view" aria-labelledby="blocks-title">
+          <div class="tool-header">
+            <div>
+              <p class="eyebrow">Arcade break</p>
+              <h1 id="blocks-title">Block Stack</h1>
+              <p class="tool-subtitle">A compact Tetris-style game for quick downtime.</p>
+            </div>
+            <div class="tool-stats" aria-label="Game totals">
+              <span><strong id="score-value">0</strong>Score</span>
+              <span><strong id="lines-value">0</strong>Lines</span>
+              <span><strong id="level-value">1</strong>Level</span>
+            </div>
+          </div>
+
+          <div class="game-layout">
+            <section class="game-stage" aria-label="Block Stack game board">
+              <canvas id="tetris-board" width="300" height="600"></canvas>
+              <div id="game-overlay" class="game-overlay">
+                <strong>Block Stack</strong>
+                <span>Press Start</span>
+              </div>
+            </section>
+
+            <aside class="game-side" aria-label="Game controls">
+              <div class="next-piece">
+                <p class="eyebrow">Next</p>
+                <canvas id="next-board" width="120" height="120"></canvas>
+              </div>
+              <div class="game-buttons">
+                <button id="start-game-button" class="button primary" type="button">Start</button>
+                <button id="pause-game-button" class="button ghost" type="button">Pause</button>
+              </div>
+              <div class="touch-controls" aria-label="Touch controls">
+                <button id="move-left" type="button" aria-label="Move left">←</button>
+                <button id="rotate-piece" type="button" aria-label="Rotate">↻</button>
+                <button id="move-right" type="button" aria-label="Move right">→</button>
+                <button id="drop-piece" type="button" aria-label="Drop">↓</button>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
