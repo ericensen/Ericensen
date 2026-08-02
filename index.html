@@ -242,6 +242,20 @@
               <div id="game-overlay" class="game-overlay">
                 <strong>Block Stack</strong>
                 <span>Press Start</span>
+                <div id="final-score-panel" class="final-score-panel" hidden>
+                  <span id="final-score-value">0</span>
+                  <form id="score-form" class="score-form">
+                    <input
+                      id="player-name-input"
+                      type="text"
+                      autocomplete="name"
+                      maxlength="24"
+                      placeholder="Name"
+                      aria-label="Player name"
+                    >
+                    <button class="button primary" type="submit">Save Score</button>
+                  </form>
+                </div>
               </div>
             </section>
 
@@ -260,6 +274,14 @@
                 <button id="move-right" type="button" aria-label="Move right" title="Move right">→</button>
                 <button id="drop-piece" type="button" aria-label="Move down" title="Move down">↓</button>
                 <button id="hard-drop-piece" type="button" aria-label="Drop to bottom" title="Drop to bottom">⇊</button>
+              </div>
+              <div class="leaderboard-panel" aria-labelledby="leaderboard-title">
+                <div class="leaderboard-heading">
+                  <p class="eyebrow" id="leaderboard-title">Leaderboard</p>
+                  <button id="clear-scores-button" class="text-button" type="button">Clear</button>
+                </div>
+                <ol id="leaderboard-list" class="leaderboard-list"></ol>
+                <p id="leaderboard-empty" class="empty-state">No scores yet.</p>
               </div>
             </aside>
           </div>

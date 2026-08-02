@@ -543,6 +543,17 @@ const tetris = (() => {
   const levelValue = document.querySelector("#level-value");
   const startButton = document.querySelector("#start-game-button");
   const pauseButton = document.querySelector("#pause-game-button");
+  const gameView = document.querySelector("#blocks-view");
+  const gameStage = document.querySelector("#blocks-view .game-stage");
+  const finalScorePanel = document.querySelector("#final-score-panel");
+  const finalScoreValue = document.querySelector("#final-score-value");
+  const scoreForm = document.querySelector("#score-form");
+  const playerNameInput = document.querySelector("#player-name-input");
+  const leaderboardList = document.querySelector("#leaderboard-list");
+  const leaderboardEmpty = document.querySelector("#leaderboard-empty");
+  const clearScoresButton = document.querySelector("#clear-scores-button");
+  const leaderboardKey = "ericensen-block-stack-leaderboard-v1";
+  const playerNameKey = "ericensen-block-stack-player-name-v1";
   const width = 10;
   const height = 20;
   const cell = 30;
@@ -577,6 +588,7 @@ const tetris = (() => {
   let paused = false;
   let gameOver = false;
   let routeActive = false;
+  let scoreSaved = false;
 
   function createBoard() {
     return Array.from({ length: height }, () => Array(width).fill(""));
@@ -600,6 +612,97 @@ const tetris = (() => {
   function setRouteActive(isActive) {
     routeActive = isActive;
     updatePlayingClass();
+  }
+
+  function loadLeaderboard() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(leaderboardKey) || "[]");
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveLeaderboard(scores) {
+    localStorage.setItem(leaderboardKey, JSON.stringify(scores.slice(0, 12)));
+  }
+
+  function formatScoreDate(value) {
+    return new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
+
+  function renderLeaderboard() {
+    const scores = loadLeaderboard().sort((left, right) => right.score - left.score).slice(0, 10);
+    leaderboardList.innerHTML = "";
+    leaderboardEmpty.hidden = scores.length > 0;
+    clearScoresButton.disabled = scores.length === 0;
+
+    scores.forEach((entry, index) => {
+      const item = document.createElement("li");
+      item.innerHTML = `
+        <span class="score-rank">${index + 1}</span>
+        <span class="score-player">${escapeHtml(entry.name)}</span>
+        <span class="score-date">${formatScoreDate(entry.date)}</span>
+        <strong>${entry.score}</strong>
+      `;
+      leaderboardList.append(item);
+    });
+  }
+
+  function saveScore(name) {
+    if (scoreSaved || score <= 0) {
+      return;
+    }
+
+    const playerName = normalizeName(name) || "Player";
+    const scores = loadLeaderboard();
+    scores.push({
+      name: playerName,
+      date: new Date().toISOString(),
+      score,
+      lines,
+      level
+    });
+    scores.sort((left, right) => right.score - left.score);
+    saveLeaderboard(scores);
+    localStorage.setItem(playerNameKey, playerName);
+    scoreSaved = true;
+    finalScorePanel.hidden = true;
+    renderLeaderboard();
+  }
+
+  function showFinalScore() {
+    finalScoreValue.textContent = score;
+    finalScorePanel.hidden = score <= 0 || scoreSaved;
+    if (!finalScorePanel.hidden) {
+      playerNameInput.value = localStorage.getItem(playerNameKey) || "";
+      window.setTimeout(() => playerNameInput.focus(), 50);
+    }
+  }
+
+  function finishGame() {
+    running = false;
+    gameOver = true;
+    updatePlayingClass();
+    overlay.hidden = false;
+    overlay.querySelector("strong").textContent = "Game Over";
+    overlay.querySelector("span").textContent = "Start again";
+    pauseButton.textContent = "Pause";
+    showFinalScore();
+  }
+
+  function enterFullscreen() {
+    if (document.fullscreenElement || !gameView.requestFullscreen) {
+      return;
+    }
+
+    gameView.requestFullscreen({ navigationUI: "hide" }).then(() => {
+      screen.orientation?.lock?.("portrait").catch(() => {});
+    }).catch(() => {});
   }
 
   function rotate(shape) {
@@ -659,13 +762,7 @@ const tetris = (() => {
     drawNext();
 
     if (collides(piece)) {
-      running = false;
-      gameOver = true;
-      updatePlayingClass();
-      overlay.hidden = false;
-      overlay.querySelector("strong").textContent = "Game Over";
-      overlay.querySelector("span").textContent = "Start again";
-      pauseButton.textContent = "Pause";
+      finishGame();
     }
   }
 
@@ -805,6 +902,7 @@ const tetris = (() => {
   }
 
   function start() {
+    enterFullscreen();
     if (animationFrame) {
       cancelAnimationFrame(animationFrame);
     }
@@ -816,8 +914,10 @@ const tetris = (() => {
     running = true;
     paused = false;
     gameOver = false;
+    scoreSaved = false;
     updatePlayingClass();
     overlay.hidden = true;
+    finalScorePanel.hidden = true;
     pauseButton.textContent = "Pause";
     updateScore();
     spawn();
@@ -879,6 +979,65 @@ const tetris = (() => {
     });
   }
 
+  function setupBoardGestures() {
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+    let didGesture = false;
+    let didHardDrop = false;
+
+    gameStage.addEventListener("pointerdown", (event) => {
+      if (!running || paused) {
+        return;
+      }
+      event.preventDefault();
+      gameStage.setPointerCapture?.(event.pointerId);
+      startX = event.clientX;
+      startY = event.clientY;
+      lastX = event.clientX;
+      didGesture = false;
+      didHardDrop = false;
+    });
+
+    gameStage.addEventListener("pointermove", (event) => {
+      if (!running || paused || didHardDrop) {
+        return;
+      }
+      event.preventDefault();
+      const totalX = event.clientX - startX;
+      const totalY = event.clientY - startY;
+      const stepX = event.clientX - lastX;
+
+      if (totalY > 72 && Math.abs(totalY) > Math.abs(totalX) * 1.2) {
+        didGesture = true;
+        didHardDrop = true;
+        hardDrop();
+        return;
+      }
+
+      if (Math.abs(stepX) > 30 && Math.abs(totalX) > Math.abs(totalY) * 0.65) {
+        didGesture = true;
+        move(Math.sign(stepX));
+        lastX = event.clientX;
+      }
+    });
+
+    gameStage.addEventListener("pointerup", (event) => {
+      if (!running || paused) {
+        return;
+      }
+      event.preventDefault();
+      if (!didGesture) {
+        turn();
+      }
+    });
+
+    gameStage.addEventListener("pointercancel", () => {
+      didGesture = false;
+      didHardDrop = false;
+    });
+  }
+
   startButton.addEventListener("click", start);
   pauseButton.addEventListener("click", togglePause);
   bindGameControl("#move-left", () => move(-1), { repeat: true });
@@ -886,6 +1045,19 @@ const tetris = (() => {
   bindGameControl("#rotate-piece", turn);
   bindGameControl("#drop-piece", drop, { repeat: true, delay: 170, interval: 70 });
   bindGameControl("#hard-drop-piece", hardDrop);
+  setupBoardGestures();
+  scoreForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    saveScore(playerNameInput.value);
+  });
+  clearScoresButton.addEventListener("click", () => {
+    if (!loadLeaderboard().length || !window.confirm("Clear the Blocks leaderboard?")) {
+      return;
+    }
+    saveLeaderboard([]);
+    renderLeaderboard();
+  });
+  document.addEventListener("fullscreenchange", updatePlayingClass);
   document.addEventListener("keydown", (event) => {
     if (!routes.get("blocks").classList.contains("active-view")) {
       return;
@@ -903,6 +1075,7 @@ const tetris = (() => {
 
   drawNext();
   draw();
+  renderLeaderboard();
 
   return { draw, setRouteActive };
 })();
