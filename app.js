@@ -535,14 +535,20 @@ function setupHubCanvas() {
 const tetris = (() => {
   const boardCanvas = document.querySelector("#tetris-board");
   const nextCanvas = document.querySelector("#next-board");
+  const fullscreenNextCanvas = document.querySelector("#fullscreen-next-board");
   const boardContext = boardCanvas.getContext("2d");
   const nextContext = nextCanvas.getContext("2d");
+  const fullscreenNextContext = fullscreenNextCanvas.getContext("2d");
   const overlay = document.querySelector("#game-overlay");
   const scoreValue = document.querySelector("#score-value");
   const linesValue = document.querySelector("#lines-value");
   const levelValue = document.querySelector("#level-value");
-  const startButton = document.querySelector("#start-game-button");
-  const pauseButton = document.querySelector("#pause-game-button");
+  const fullscreenScoreValue = document.querySelector("#fullscreen-score-value");
+  const fullscreenLinesValue = document.querySelector("#fullscreen-lines-value");
+  const fullscreenLevelValue = document.querySelector("#fullscreen-level-value");
+  const gameActionButton = document.querySelector("#game-action-button");
+  const fullscreenActionButton = document.querySelector("#fullscreen-action-button");
+  const actionButtons = [gameActionButton, fullscreenActionButton];
   const gameView = document.querySelector("#blocks-view");
   const gameStage = document.querySelector("#blocks-view .game-stage");
   const finalScorePanel = document.querySelector("#final-score-panel");
@@ -606,12 +612,25 @@ const tetris = (() => {
   }
 
   function updatePlayingClass() {
+    const fullscreenActive = document.fullscreenElement === gameView;
     document.body.classList.toggle("blocks-playing", routeActive && running && !gameOver);
+    document.body.classList.toggle("blocks-fullscreen-active", fullscreenActive);
+    gameView.classList.toggle("fullscreen-active", fullscreenActive);
+    updateActionButtons();
   }
 
   function setRouteActive(isActive) {
     routeActive = isActive;
     updatePlayingClass();
+  }
+
+  function updateActionButtons() {
+    const label = !running || gameOver ? "Start" : paused ? "Resume" : "Pause";
+    const ariaLabel = label === "Start" ? "Start game" : `${label} game`;
+    actionButtons.forEach((button) => {
+      button.textContent = label;
+      button.setAttribute("aria-label", ariaLabel);
+    });
   }
 
   function loadLeaderboard() {
@@ -691,18 +710,22 @@ const tetris = (() => {
     overlay.hidden = false;
     overlay.querySelector("strong").textContent = "Game Over";
     overlay.querySelector("span").textContent = "Start again";
-    pauseButton.textContent = "Pause";
+    updateActionButtons();
     showFinalScore();
   }
 
   function enterFullscreen() {
     if (document.fullscreenElement || !gameView.requestFullscreen) {
+      document.body.classList.toggle("blocks-fullscreen-unavailable", !gameView.requestFullscreen);
       return;
     }
 
     gameView.requestFullscreen({ navigationUI: "hide" }).then(() => {
+      document.body.classList.remove("blocks-fullscreen-unavailable");
       screen.orientation?.lock?.("portrait").catch(() => {});
-    }).catch(() => {});
+    }).catch(() => {
+      document.body.classList.add("blocks-fullscreen-unavailable");
+    });
   }
 
   function rotate(shape) {
@@ -879,26 +902,33 @@ const tetris = (() => {
     }
   }
 
-  function drawNext() {
-    nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-    nextContext.fillStyle = "#f8f4ea";
-    nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-    const size = 24;
+  function drawNextPreview(context, canvas, size) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#f8f4ea";
+    context.fillRect(0, 0, canvas.width, canvas.height);
     const offsetX = Math.floor((5 - nextPiece.shape[0].length) / 2);
     const offsetY = Math.floor((5 - nextPiece.shape.length) / 2);
     nextPiece.shape.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value) {
-          drawCell(nextContext, x + offsetX, y + offsetY, nextPiece.type, size);
+          drawCell(context, x + offsetX, y + offsetY, nextPiece.type, size);
         }
       });
     });
+  }
+
+  function drawNext() {
+    drawNextPreview(nextContext, nextCanvas, 24);
+    drawNextPreview(fullscreenNextContext, fullscreenNextCanvas, 16);
   }
 
   function updateScore() {
     scoreValue.textContent = score;
     linesValue.textContent = lines;
     levelValue.textContent = level;
+    fullscreenScoreValue.textContent = score;
+    fullscreenLinesValue.textContent = lines;
+    fullscreenLevelValue.textContent = level;
   }
 
   function start() {
@@ -918,7 +948,7 @@ const tetris = (() => {
     updatePlayingClass();
     overlay.hidden = true;
     finalScorePanel.hidden = true;
-    pauseButton.textContent = "Pause";
+    updateActionButtons();
     updateScore();
     spawn();
     lastTime = 0;
@@ -933,8 +963,15 @@ const tetris = (() => {
     overlay.hidden = !paused;
     overlay.querySelector("strong").textContent = "Paused";
     overlay.querySelector("span").textContent = "Press Pause";
-    pauseButton.textContent = paused ? "Resume" : "Pause";
     updatePlayingClass();
+  }
+
+  function handleGameAction() {
+    if (!running || gameOver) {
+      start();
+      return;
+    }
+    togglePause();
   }
 
   function bindGameControl(selector, action, options = {}) {
@@ -984,10 +1021,9 @@ const tetris = (() => {
     let startY = 0;
     let lastX = 0;
     let didGesture = false;
-    let didHardDrop = false;
 
     gameStage.addEventListener("pointerdown", (event) => {
-      if (!running || paused) {
+      if (!running || paused || (event.target !== boardCanvas && event.target !== gameStage)) {
         return;
       }
       event.preventDefault();
@@ -996,11 +1032,10 @@ const tetris = (() => {
       startY = event.clientY;
       lastX = event.clientX;
       didGesture = false;
-      didHardDrop = false;
     });
 
     gameStage.addEventListener("pointermove", (event) => {
-      if (!running || paused || didHardDrop) {
+      if (!running || paused || (event.target !== boardCanvas && event.target !== gameStage)) {
         return;
       }
       event.preventDefault();
@@ -1008,14 +1043,12 @@ const tetris = (() => {
       const totalY = event.clientY - startY;
       const stepX = event.clientX - lastX;
 
-      if (totalY > 72 && Math.abs(totalY) > Math.abs(totalX) * 1.2) {
+      if (Math.abs(totalY) > 34 && Math.abs(totalY) > Math.abs(totalX) * 1.1) {
         didGesture = true;
-        didHardDrop = true;
-        hardDrop();
         return;
       }
 
-      if (Math.abs(stepX) > 30 && Math.abs(totalX) > Math.abs(totalY) * 0.65) {
+      if (Math.abs(stepX) > 30 && Math.abs(totalX) > 24) {
         didGesture = true;
         move(Math.sign(stepX));
         lastX = event.clientX;
@@ -1034,17 +1067,18 @@ const tetris = (() => {
 
     gameStage.addEventListener("pointercancel", () => {
       didGesture = false;
-      didHardDrop = false;
     });
   }
 
-  startButton.addEventListener("click", start);
-  pauseButton.addEventListener("click", togglePause);
+  gameActionButton.addEventListener("click", handleGameAction);
+  fullscreenActionButton.addEventListener("click", handleGameAction);
   bindGameControl("#move-left", () => move(-1), { repeat: true });
   bindGameControl("#move-right", () => move(1), { repeat: true });
   bindGameControl("#rotate-piece", turn);
   bindGameControl("#drop-piece", drop, { repeat: true, delay: 170, interval: 70 });
   bindGameControl("#hard-drop-piece", hardDrop);
+  bindGameControl("#fullscreen-drop-piece", drop, { repeat: true, delay: 170, interval: 70 });
+  bindGameControl("#fullscreen-hard-drop-piece", hardDrop);
   setupBoardGestures();
   scoreForm.addEventListener("submit", (event) => {
     event.preventDefault();

@@ -238,6 +238,11 @@
 
           <div class="game-layout">
             <section class="game-stage" aria-label="Block Stack game board">
+              <div class="fullscreen-game-hud" aria-label="Game totals">
+                <span><strong id="fullscreen-score-value">0</strong>Score</span>
+                <span><strong id="fullscreen-lines-value">0</strong>Lines</span>
+                <span><strong id="fullscreen-level-value">1</strong>Level</span>
+              </div>
               <canvas id="tetris-board" width="300" height="600"></canvas>
               <div id="game-overlay" class="game-overlay">
                 <strong>Block Stack</strong>
@@ -257,6 +262,12 @@
                   </form>
                 </div>
               </div>
+              <div class="fullscreen-controls" aria-label="Fullscreen controls">
+                <button id="fullscreen-action-button" type="button" aria-label="Start game">Start</button>
+                <button id="fullscreen-drop-piece" type="button" aria-label="Move down" title="Move down">↓</button>
+                <canvas id="fullscreen-next-board" width="80" height="80" aria-label="Next block"></canvas>
+                <button id="fullscreen-hard-drop-piece" type="button" aria-label="Drop to bottom" title="Drop to bottom">⇊</button>
+              </div>
             </section>
 
             <aside class="game-side" aria-label="Game controls">
@@ -265,8 +276,7 @@
                 <canvas id="next-board" width="120" height="120"></canvas>
               </div>
               <div class="game-buttons">
-                <button id="start-game-button" class="button primary" type="button">Start</button>
-                <button id="pause-game-button" class="button ghost" type="button">Pause</button>
+                <button id="game-action-button" class="button primary" type="button">Start</button>
               </div>
               <div class="touch-controls" aria-label="Touch controls">
                 <button id="rotate-piece" type="button" aria-label="Rotate" title="Rotate">↻</button>

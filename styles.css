@@ -44,12 +44,8 @@ body.blocks-playing {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
-    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
-  background:
-    linear-gradient(90deg, rgba(36, 50, 74, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(36, 50, 74, 0.04) 1px, transparent 1px),
-    var(--paper);
+  padding: 0;
+  background: #111827;
 }
 
 #blocks-view:fullscreen.active-view {
@@ -912,7 +908,7 @@ a:focus-visible {
 
 #blocks-view .game-buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-top: 0;
 }
@@ -970,6 +966,11 @@ a:focus-visible {
   grid-area: hard;
   background: var(--coral);
   font-size: 1.7rem;
+}
+
+.fullscreen-game-hud,
+.fullscreen-controls {
+  display: none;
 }
 
 .leaderboard-panel {
@@ -1361,6 +1362,159 @@ a:focus-visible {
 
   .touch-controls button {
     width: 100%;
+  }
+}
+
+#blocks-view:fullscreen .tool-header,
+#blocks-view:fullscreen .game-side,
+body.blocks-fullscreen-active #blocks-view .tool-header,
+body.blocks-fullscreen-active #blocks-view .game-side {
+  display: none;
+}
+
+body.blocks-playing:not(.blocks-fullscreen-active) #blocks-view .leaderboard-panel {
+  display: grid;
+}
+
+#blocks-view:fullscreen.active-view,
+body.blocks-fullscreen-active #blocks-view.active-view {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: #111827;
+  color: #fff;
+}
+
+#blocks-view:fullscreen .game-layout,
+body.blocks-fullscreen-active #blocks-view .game-layout {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+#blocks-view:fullscreen .game-stage,
+body.blocks-fullscreen-active #blocks-view .game-stage {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  place-items: center;
+  padding: max(46px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+    max(72px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  border: 0;
+  border-radius: 0;
+  background: #111827;
+  box-shadow: none;
+}
+
+#blocks-view:fullscreen #tetris-board,
+body.blocks-fullscreen-active #blocks-view #tetris-board {
+  width: min(calc(100svw - 16px), calc((100svh - 132px) / 2));
+  max-width: 100%;
+  max-height: calc(100svh - 132px);
+}
+
+#blocks-view:fullscreen .fullscreen-game-hud,
+body.blocks-fullscreen-active #blocks-view .fullscreen-game-hud {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  width: min(360px, calc(100% - 16px));
+  justify-content: center;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.fullscreen-game-hud span {
+  display: grid;
+  min-width: 70px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  background: rgba(17, 24, 39, 0.72);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.fullscreen-game-hud strong {
+  color: #fff;
+  font-size: 1.05rem;
+}
+
+#blocks-view:fullscreen .fullscreen-controls,
+body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
+  position: absolute;
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) 62px 66px 62px;
+  gap: 6px;
+  align-items: center;
+}
+
+.fullscreen-controls button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+  touch-action: none;
+  user-select: none;
+}
+
+#fullscreen-action-button {
+  background: var(--teal);
+  color: #fff;
+}
+
+#fullscreen-hard-drop-piece {
+  background: var(--coral);
+  color: #fff;
+  font-size: 1.45rem;
+}
+
+#fullscreen-drop-piece {
+  font-size: 1.35rem;
+}
+
+#fullscreen-next-board {
+  display: block;
+  width: 54px;
+  height: 54px;
+  justify-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  background: #f8f4ea;
+}
+
+@media (max-width: 380px) {
+  #blocks-view:fullscreen .fullscreen-controls,
+  body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
+    grid-template-columns: minmax(58px, 1fr) 52px 56px 52px;
+  }
+
+  .fullscreen-controls button {
+    height: 50px;
+  }
+
+  #fullscreen-next-board {
+    width: 50px;
+    height: 50px;
   }
 }
 
