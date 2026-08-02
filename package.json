@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
-    "test": "node tests/nameParser.test.mjs",
-    "build": "node tests/nameParser.test.mjs"
+    "test": "node tests/run.mjs",
+    "build": "node tests/run.mjs"
   }
 }

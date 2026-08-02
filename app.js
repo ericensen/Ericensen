@@ -4,6 +4,7 @@ import {
   parseNamesFromSpeech,
   parseNamesFromText
 } from "./lib/nameParser.mjs";
+import { mergeDrawQueue, shuffleNames } from "./lib/drawOrder.mjs";
 
 const routes = new Map([
   ["home", document.querySelector("#home-view")],
@@ -189,15 +190,6 @@ function remainingNames() {
   return state.names.filter((name) => !state.drawn.includes(name));
 }
 
-function shuffleNames(names) {
-  const shuffled = [...names];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  return shuffled;
-}
-
 function syncDrawQueue({ reshuffle = false } = {}) {
   const remaining = remainingNames();
   if (reshuffle) {
@@ -205,11 +197,12 @@ function syncDrawQueue({ reshuffle = false } = {}) {
     return;
   }
 
-  const remainingSet = new Set(remaining);
-  const queued = dedupeNames(state.drawQueue).filter((name) => remainingSet.has(name));
-  const queuedSet = new Set(queued);
-  const missing = remaining.filter((name) => !queuedSet.has(name));
-  state.drawQueue = [...queued, ...shuffleNames(missing)];
+  if (state.drawn.length === 0) {
+    state.drawQueue = [];
+    return;
+  }
+
+  state.drawQueue = mergeDrawQueue(state.drawQueue, remaining);
 }
 
 function setNames(nextNames) {
@@ -423,7 +416,12 @@ function setupVoice() {
 }
 
 function drawName() {
-  syncDrawQueue();
+  if (state.drawQueue.length) {
+    syncDrawQueue();
+  } else {
+    state.drawQueue = shuffleNames(remainingNames());
+  }
+
   if (!state.drawQueue.length) {
     renderNames();
     return;
