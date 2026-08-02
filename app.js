@@ -96,6 +96,9 @@ function renderRoute() {
     link.classList.toggle("active", link.dataset.nav === activeRoute);
   });
 
+  document.body.classList.toggle("blocks-route", activeRoute === "blocks");
+  tetris.setRouteActive(activeRoute === "blocks");
+
   if (activeRoute === "blocks") {
     tetris.draw();
   }
@@ -573,6 +576,7 @@ const tetris = (() => {
   let running = false;
   let paused = false;
   let gameOver = false;
+  let routeActive = false;
 
   function createBoard() {
     return Array.from({ length: height }, () => Array(width).fill(""));
@@ -587,6 +591,15 @@ const tetris = (() => {
       x: Math.floor(width / 2) - 1,
       y: 0
     };
+  }
+
+  function updatePlayingClass() {
+    document.body.classList.toggle("blocks-playing", routeActive && running && !gameOver);
+  }
+
+  function setRouteActive(isActive) {
+    routeActive = isActive;
+    updatePlayingClass();
   }
 
   function rotate(shape) {
@@ -648,9 +661,11 @@ const tetris = (() => {
     if (collides(piece)) {
       running = false;
       gameOver = true;
+      updatePlayingClass();
       overlay.hidden = false;
       overlay.querySelector("strong").textContent = "Game Over";
       overlay.querySelector("span").textContent = "Start again";
+      pauseButton.textContent = "Pause";
     }
   }
 
@@ -801,11 +816,13 @@ const tetris = (() => {
     running = true;
     paused = false;
     gameOver = false;
+    updatePlayingClass();
     overlay.hidden = true;
+    pauseButton.textContent = "Pause";
     updateScore();
     spawn();
     lastTime = 0;
-    requestAnimationFrame(update);
+    animationFrame = requestAnimationFrame(update);
   }
 
   function togglePause() {
@@ -816,14 +833,59 @@ const tetris = (() => {
     overlay.hidden = !paused;
     overlay.querySelector("strong").textContent = "Paused";
     overlay.querySelector("span").textContent = "Press Pause";
+    pauseButton.textContent = paused ? "Resume" : "Pause";
+    updatePlayingClass();
+  }
+
+  function bindGameControl(selector, action, options = {}) {
+    const button = document.querySelector(selector);
+    let repeatDelay = 0;
+    let repeatInterval = 0;
+    let ignoreClickUntil = 0;
+
+    const stopRepeat = () => {
+      window.clearTimeout(repeatDelay);
+      window.clearInterval(repeatInterval);
+      repeatDelay = 0;
+      repeatInterval = 0;
+    };
+
+    button.addEventListener("pointerdown", (event) => {
+      if (button.disabled) {
+        return;
+      }
+      event.preventDefault();
+      button.setPointerCapture?.(event.pointerId);
+      ignoreClickUntil = performance.now() + 450;
+      action();
+
+      if (options.repeat) {
+        repeatDelay = window.setTimeout(() => {
+          repeatInterval = window.setInterval(action, options.interval ?? 85);
+        }, options.delay ?? 210);
+      }
+    });
+
+    button.addEventListener("pointerup", stopRepeat);
+    button.addEventListener("pointercancel", stopRepeat);
+    button.addEventListener("pointerleave", stopRepeat);
+    button.addEventListener("lostpointercapture", stopRepeat);
+    button.addEventListener("click", (event) => {
+      if (performance.now() < ignoreClickUntil) {
+        event.preventDefault();
+        return;
+      }
+      action();
+    });
   }
 
   startButton.addEventListener("click", start);
   pauseButton.addEventListener("click", togglePause);
-  document.querySelector("#move-left").addEventListener("click", () => move(-1));
-  document.querySelector("#move-right").addEventListener("click", () => move(1));
-  document.querySelector("#rotate-piece").addEventListener("click", turn);
-  document.querySelector("#drop-piece").addEventListener("click", hardDrop);
+  bindGameControl("#move-left", () => move(-1), { repeat: true });
+  bindGameControl("#move-right", () => move(1), { repeat: true });
+  bindGameControl("#rotate-piece", turn);
+  bindGameControl("#drop-piece", drop, { repeat: true, delay: 170, interval: 70 });
+  bindGameControl("#hard-drop-piece", hardDrop);
   document.addEventListener("keydown", (event) => {
     if (!routes.get("blocks").classList.contains("active-view")) {
       return;
@@ -842,7 +904,7 @@ const tetris = (() => {
   drawNext();
   draw();
 
-  return { draw };
+  return { draw, setRouteActive };
 })();
 
 renderAppGrid();

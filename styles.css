@@ -35,6 +35,11 @@ body {
   color: var(--ink);
 }
 
+body.blocks-playing {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 button,
 input,
 textarea {
@@ -816,12 +821,16 @@ a:focus-visible {
 
 .game-stage {
   position: relative;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   width: min(100%, 420px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #111827;
   box-shadow: var(--shadow);
+  touch-action: none;
+  user-select: none;
 }
 
 #tetris-board {
@@ -854,6 +863,15 @@ a:focus-visible {
   display: grid;
   gap: 16px;
   padding: 20px;
+  touch-action: none;
+  user-select: none;
+}
+
+#blocks-view .game-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 0;
 }
 
 .next-piece {
@@ -871,19 +889,22 @@ a:focus-visible {
 
 .touch-controls {
   display: grid;
-  grid-template-columns: repeat(3, 64px);
+  grid-template-columns: repeat(3, minmax(64px, 1fr));
   grid-template-areas:
-    "left rotate right"
-    ". down .";
+    "rotate rotate rotate"
+    "left down right"
+    "hard hard hard";
   gap: 8px;
 }
 
 .touch-controls button {
-  width: 64px;
-  height: 54px;
+  width: 100%;
+  height: 58px;
   background: var(--ink);
   color: #fff;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
+  touch-action: none;
+  user-select: none;
 }
 
 #move-left {
@@ -900,6 +921,12 @@ a:focus-visible {
 
 #drop-piece {
   grid-area: down;
+}
+
+#hard-drop-piece {
+  grid-area: hard;
+  background: var(--coral);
+  font-size: 1.7rem;
 }
 
 @media (max-width: 860px) {
@@ -928,6 +955,166 @@ a:focus-visible {
   .game-layout,
   .namehat-layout {
     grid-template-columns: 1fr;
+  }
+
+  #blocks-view .tool-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0 10px;
+  }
+
+  #blocks-view .tool-header > div:first-child {
+    flex: 0 0 94px;
+    min-width: 0;
+  }
+
+  #blocks-view .tool-header .eyebrow,
+  #blocks-view .tool-subtitle {
+    display: none;
+  }
+
+  #blocks-view .tool-header h1 {
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+
+  #blocks-view .tool-stats {
+    flex: 1 1 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    min-width: 0;
+  }
+
+  #blocks-view .tool-stats span {
+    min-height: 48px;
+    padding: 6px 4px;
+    font-size: 0.62rem;
+  }
+
+  #blocks-view .tool-stats strong {
+    font-size: 1.05rem;
+  }
+
+  #blocks-view .game-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(96px, 30vw);
+    gap: 8px;
+    align-items: center;
+  }
+
+  #blocks-view .game-stage {
+    justify-self: end;
+    width: min(100%, max(170px, calc((100svh - 215px) / 2)));
+    max-height: calc(100svh - 190px);
+  }
+
+  #blocks-view .game-side {
+    align-self: stretch;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  #blocks-view .next-piece {
+    justify-items: center;
+    gap: 4px;
+  }
+
+  #blocks-view .next-piece .eyebrow {
+    margin-bottom: 0;
+    font-size: 0.66rem;
+  }
+
+  #next-board {
+    width: 68px;
+    height: 68px;
+  }
+
+  #blocks-view .game-buttons {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  #blocks-view .game-buttons .button {
+    min-height: 36px;
+    padding: 7px 8px;
+    font-size: 0.8rem;
+  }
+
+  #blocks-view .touch-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "rotate rotate"
+      "left right"
+      "down hard";
+    gap: 6px;
+  }
+
+  #blocks-view .touch-controls button {
+    min-width: 0;
+    height: clamp(48px, 8.5svh, 64px);
+    font-size: 1.35rem;
+  }
+
+  body.blocks-playing .app-shell {
+    height: 100svh;
+    overflow: hidden;
+    padding: 8px 0;
+  }
+
+  body.blocks-playing .topbar {
+    position: static;
+    padding: 4px 0 6px;
+  }
+
+  body.blocks-playing .brand-sigil {
+    width: 34px;
+    height: 34px;
+  }
+
+  body.blocks-playing .brand-mark small,
+  body.blocks-playing .top-nav {
+    display: none;
+  }
+
+  body.blocks-playing #blocks-view.active-view {
+    display: flex;
+    height: calc(100svh - 48px);
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body.blocks-playing #blocks-view .tool-header {
+    flex: 0 0 auto;
+    padding: 4px 0 6px;
+  }
+
+  body.blocks-playing #blocks-view .tool-header > div:first-child {
+    flex-basis: 82px;
+  }
+
+  body.blocks-playing #blocks-view .tool-header h1 {
+    font-size: 1.22rem;
+  }
+
+  body.blocks-playing #blocks-view .tool-stats span {
+    min-height: 42px;
+  }
+
+  body.blocks-playing #blocks-view .game-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  body.blocks-playing #blocks-view .game-stage {
+    width: min(100%, max(160px, calc((100svh - 120px) / 2)));
+    max-height: 100%;
+  }
+
+  body.blocks-playing #blocks-view .game-side {
+    align-self: center;
+    width: 100%;
   }
 
   .namehat-layout {
@@ -1012,7 +1199,7 @@ a:focus-visible {
   }
 
   .touch-controls {
-    grid-template-columns: repeat(3, minmax(58px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .touch-controls button {
