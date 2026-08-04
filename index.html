@@ -243,7 +243,16 @@
                 <span><strong id="fullscreen-lines-value">0</strong>Lines</span>
                 <span><strong id="fullscreen-level-value">1</strong>Level</span>
               </div>
-              <canvas id="tetris-board" width="300" height="600"></canvas>
+              <button
+                id="fullscreen-toggle-button"
+                class="fullscreen-toggle-button"
+                type="button"
+                aria-label="Enter fullscreen"
+                title="Toggle fullscreen"
+              >
+                ⛶
+              </button>
+              <canvas id="tetris-board" width="300" height="600" tabindex="0"></canvas>
               <div id="game-overlay" class="game-overlay">
                 <strong>Block Stack</strong>
                 <span>Press Start</span>
@@ -265,7 +274,9 @@
               <div class="fullscreen-controls" aria-label="Fullscreen controls">
                 <button id="fullscreen-action-button" type="button" aria-label="Start game">Start</button>
                 <button id="fullscreen-drop-piece" type="button" aria-label="Move down" title="Move down">↓</button>
-                <canvas id="fullscreen-next-board" width="80" height="80" aria-label="Next block"></canvas>
+                <div class="fullscreen-next-tile" aria-label="Next block">
+                  <canvas id="fullscreen-next-board" width="80" height="80"></canvas>
+                </div>
                 <button id="fullscreen-hard-drop-piece" type="button" aria-label="Drop to bottom" title="Drop to bottom">⇊</button>
               </div>
             </section>

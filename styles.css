@@ -973,6 +973,25 @@ a:focus-visible {
   display: none;
 }
 
+.fullscreen-toggle-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  background: rgba(17, 24, 39, 0.72);
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 900;
+  touch-action: none;
+}
+
 .leaderboard-panel {
   display: grid;
   gap: 8px;
@@ -1419,13 +1438,12 @@ body.blocks-fullscreen-active #blocks-view #tetris-board {
 body.blocks-fullscreen-active #blocks-view .fullscreen-game-hud {
   position: absolute;
   top: max(8px, env(safe-area-inset-top));
-  left: 50%;
+  right: max(54px, calc(env(safe-area-inset-right) + 54px));
+  left: max(8px, env(safe-area-inset-left));
   z-index: 3;
   display: flex;
-  width: min(360px, calc(100% - 16px));
   justify-content: center;
   gap: 6px;
-  transform: translateX(-50%);
 }
 
 .fullscreen-game-hud span {
@@ -1456,12 +1474,13 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
   left: max(8px, env(safe-area-inset-left));
   z-index: 3;
   display: grid;
-  grid-template-columns: minmax(70px, 1fr) 62px 66px 62px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   align-items: center;
 }
 
-.fullscreen-controls button {
+.fullscreen-controls button,
+.fullscreen-next-tile {
   display: grid;
   width: 100%;
   min-width: 0;
@@ -1471,6 +1490,9 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
+}
+
+.fullscreen-controls button {
   cursor: pointer;
   font-weight: 900;
   touch-action: none;
@@ -1494,10 +1516,9 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
 
 #fullscreen-next-board {
   display: block;
-  width: 54px;
-  height: 54px;
+  width: 46px;
+  height: 46px;
   justify-self: center;
-  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--radius);
   background: #f8f4ea;
 }
@@ -1505,16 +1526,17 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
 @media (max-width: 380px) {
   #blocks-view:fullscreen .fullscreen-controls,
   body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
-    grid-template-columns: minmax(58px, 1fr) 52px 56px 52px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .fullscreen-controls button {
+  .fullscreen-controls button,
+  .fullscreen-next-tile {
     height: 50px;
   }
 
   #fullscreen-next-board {
-    width: 50px;
-    height: 50px;
+    width: 42px;
+    height: 42px;
   }
 }
 

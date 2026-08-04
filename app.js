@@ -548,6 +548,7 @@ const tetris = (() => {
   const fullscreenLevelValue = document.querySelector("#fullscreen-level-value");
   const gameActionButton = document.querySelector("#game-action-button");
   const fullscreenActionButton = document.querySelector("#fullscreen-action-button");
+  const fullscreenToggleButton = document.querySelector("#fullscreen-toggle-button");
   const actionButtons = [gameActionButton, fullscreenActionButton];
   const gameView = document.querySelector("#blocks-view");
   const gameStage = document.querySelector("#blocks-view .game-stage");
@@ -617,6 +618,7 @@ const tetris = (() => {
     document.body.classList.toggle("blocks-fullscreen-active", fullscreenActive);
     gameView.classList.toggle("fullscreen-active", fullscreenActive);
     updateActionButtons();
+    updateFullscreenToggle();
   }
 
   function setRouteActive(isActive) {
@@ -631,6 +633,16 @@ const tetris = (() => {
       button.textContent = label;
       button.setAttribute("aria-label", ariaLabel);
     });
+  }
+
+  function updateFullscreenToggle() {
+    const fullscreenActive = document.fullscreenElement === gameView;
+    fullscreenToggleButton.textContent = fullscreenActive ? "×" : "⛶";
+    fullscreenToggleButton.setAttribute(
+      "aria-label",
+      fullscreenActive ? "Exit fullscreen" : "Enter fullscreen"
+    );
+    fullscreenToggleButton.title = fullscreenActive ? "Exit fullscreen" : "Enter fullscreen";
   }
 
   function loadLeaderboard() {
@@ -726,6 +738,20 @@ const tetris = (() => {
     }).catch(() => {
       document.body.classList.add("blocks-fullscreen-unavailable");
     });
+  }
+
+  function exitFullscreen() {
+    if (document.fullscreenElement === gameView && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement === gameView) {
+      exitFullscreen();
+      return;
+    }
+    enterFullscreen();
   }
 
   function rotate(shape) {
@@ -953,6 +979,7 @@ const tetris = (() => {
     spawn();
     lastTime = 0;
     animationFrame = requestAnimationFrame(update);
+    boardCanvas.focus({ preventScroll: true });
   }
 
   function togglePause() {
@@ -1072,6 +1099,7 @@ const tetris = (() => {
 
   gameActionButton.addEventListener("click", handleGameAction);
   fullscreenActionButton.addEventListener("click", handleGameAction);
+  fullscreenToggleButton.addEventListener("click", toggleFullscreen);
   bindGameControl("#move-left", () => move(-1), { repeat: true });
   bindGameControl("#move-right", () => move(1), { repeat: true });
   bindGameControl("#rotate-piece", turn);
@@ -1096,13 +1124,29 @@ const tetris = (() => {
     if (!routes.get("blocks").classList.contains("active-view")) {
       return;
     }
-    if (event.key === "ArrowLeft") move(-1);
-    if (event.key === "ArrowRight") move(1);
-    if (event.key === "ArrowUp") turn();
-    if (event.key === "ArrowDown") drop();
-    if (event.key === " ") {
+    const target = event.target;
+    const isTextInput = target instanceof HTMLElement
+      && (target.matches("input, textarea, select") || target.isContentEditable);
+
+    if (isTextInput) {
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
       event.preventDefault();
-      hardDrop();
+      move(-1);
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      move(1);
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      drop();
+    }
+    if (event.key === " " && !(target instanceof HTMLElement && target.closest("button"))) {
+      event.preventDefault();
+      turn();
     }
     if (event.key.toLocaleLowerCase() === "p") togglePause();
   });
