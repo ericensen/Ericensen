@@ -1144,7 +1144,7 @@ const tetris = (() => {
       event.preventDefault();
       drop();
     }
-    if (event.key === " " && !(target instanceof HTMLElement && target.closest("button"))) {
+    if (event.key === "ArrowUp") {
       event.preventDefault();
       turn();
     }
