@@ -27,7 +27,7 @@ const appRegistry = [
     id: "ecosystem",
     title: "Ecosystem Lab",
     kicker: "Simulation",
-    description: "Tune predators, herbivores, plants, hunger, movement, and reproduction.",
+    description: "Tune predators, herbivores, plants, energy, movement, and reproduction.",
     accent: "olive"
   },
   {
@@ -584,9 +584,11 @@ const ecosystemLab = (() => {
     ["startPredators", "#eco-start-predators", "#eco-start-predators-value"],
     ["plantSpawn", "#eco-plant-spawn", "#eco-plant-spawn-value"],
     ["herbivoreSpeed", "#eco-herbivore-speed", "#eco-herbivore-speed-value"],
+    ["herbivoreFear", "#eco-herbivore-fear", "#eco-herbivore-fear-value"],
     ["herbivoreFeed", "#eco-herbivore-feed", "#eco-herbivore-feed-value"],
     ["herbivoreRepro", "#eco-herbivore-repro", "#eco-herbivore-repro-value"],
     ["predatorSpeed", "#eco-predator-speed", "#eco-predator-speed-value"],
+    ["predatorStamina", "#eco-predator-stamina", "#eco-predator-stamina-value"],
     ["predatorFeed", "#eco-predator-feed", "#eco-predator-feed-value"],
     ["predatorRepro", "#eco-predator-repro", "#eco-predator-repro-value"]
   ].map(([key, inputSelector, outputSelector]) => ({
@@ -650,8 +652,13 @@ const ecosystemLab = (() => {
       ...point,
       type,
       radius: type === "predator" ? 5 : 4,
-      hunger: Math.random() * 4,
+      energy: 68 + Math.random() * 24,
+      fedAge: Math.random() * feedNeed(type) * 0.45,
       reproCooldown: Math.random() * reproductionCooldown(type),
+      stamina: 1,
+      exhausted: false,
+      fleeing: false,
+      chasing: false,
       wanderTimer: 0,
       vx: direction.x,
       vy: direction.y
@@ -727,6 +734,31 @@ const ecosystemLab = (() => {
     animal.vy += (dy / length) * strength;
   }
 
+  function steerAway(animal, threat, strength = 0.18) {
+    const dx = animal.x - threat.x;
+    const dy = animal.y - threat.y;
+    const length = Math.hypot(dx, dy) || 1;
+    animal.vx += (dx / length) * strength;
+    animal.vy += (dy / length) * strength;
+  }
+
+  function restoreEnergy(animal, amount) {
+    animal.energy = Math.min(100, animal.energy + amount);
+    animal.fedAge = 0;
+  }
+
+  function drainEnergy(animal, type, delta, multiplier = 1) {
+    const baseDrain = 100 / Math.max(1, feedNeed(type));
+    animal.energy -= baseDrain * multiplier * delta;
+    animal.fedAge += delta;
+  }
+
+  function canReproduce(animal, type) {
+    return animal.reproCooldown <= 0
+      && animal.energy >= 72
+      && animal.fedAge <= feedNeed(type) * 0.45;
+  }
+
   function wander(animal, delta) {
     animal.wanderTimer -= delta;
     if (animal.wanderTimer <= 0) {
@@ -768,7 +800,7 @@ const ecosystemLab = (() => {
     ));
     if (plantIndex >= 0) {
       organisms.plants.splice(plantIndex, 1);
-      animal.hunger = 0;
+      restoreEnergy(animal, 54);
       animal.reproCooldown = Math.max(0, animal.reproCooldown - 1.25);
     }
   }
@@ -779,27 +811,71 @@ const ecosystemLab = (() => {
     ));
     if (herbivoreIndex >= 0) {
       organisms.herbivores.splice(herbivoreIndex, 1);
-      animal.hunger = 0;
+      restoreEnergy(animal, 70);
       animal.reproCooldown = Math.max(0, animal.reproCooldown - 1.5);
     }
   }
 
   function updateAnimal(animal, type, delta) {
-    const hungry = animal.hunger > feedNeed(type) * 0.35;
-    const target = type === "predator"
-      ? nearest(animal, organisms.herbivores, hungry ? 210 : 90)
-      : nearest(animal, organisms.plants, hungry ? 170 : 70);
+    const hungry = animal.energy < 62;
+    let target = null;
+    let speedMultiplier = hungry ? 1.1 : 0.9;
+    let energyMultiplier = hungry ? 1.08 : 0.82;
+
+    animal.fleeing = false;
+    animal.chasing = false;
+
+    if (type === "herbivore") {
+      const threat = nearest(animal, organisms.predators, settings.herbivoreFear);
+      if (threat) {
+        steerAway(animal, threat, 0.24);
+        animal.fleeing = true;
+        speedMultiplier = 1.45;
+        energyMultiplier = 1.75;
+      } else {
+        target = nearest(animal, organisms.plants, hungry ? 175 : 72);
+      }
+    } else {
+      if (animal.exhausted) {
+        animal.stamina = Math.min(1, animal.stamina + delta / Math.max(1, settings.predatorStamina * 1.8));
+        if (animal.stamina >= 0.68) {
+          animal.exhausted = false;
+        }
+      } else {
+        target = nearest(animal, organisms.herbivores, hungry ? 220 : 96);
+        if (target) {
+          animal.chasing = true;
+          animal.stamina -= delta / Math.max(1, settings.predatorStamina);
+          if (animal.stamina <= 0) {
+            animal.stamina = 0;
+            animal.exhausted = true;
+            animal.chasing = false;
+            target = null;
+          }
+        } else {
+          animal.stamina = Math.min(1, animal.stamina + delta / Math.max(1, settings.predatorStamina * 2.2));
+        }
+      }
+
+      if (animal.exhausted) {
+        speedMultiplier = 0.58;
+        energyMultiplier = 0.62;
+      } else if (animal.chasing) {
+        speedMultiplier = 1.22;
+        energyMultiplier = 1.7;
+      }
+    }
 
     if (target) {
-      steerToward(animal, target, hungry ? 0.18 : 0.08);
+      steerToward(animal, target, hungry || animal.chasing ? 0.18 : 0.08);
     } else {
       wander(animal, delta);
     }
 
-    animal.hunger += delta;
+    drainEnergy(animal, type, delta, energyMultiplier);
     animal.reproCooldown = Math.max(0, animal.reproCooldown - delta);
     normalizeVelocity(animal);
-    const speed = movementSpeed(type) * (hungry ? 1.12 : 0.92);
+    const speed = movementSpeed(type) * speedMultiplier;
     animal.x += animal.vx * speed * delta;
     animal.y += animal.vy * speed * delta;
     containAnimal(animal);
@@ -813,8 +889,7 @@ const ecosystemLab = (() => {
 
   function removeStarved(type) {
     const list = type === "predator" ? organisms.predators : organisms.herbivores;
-    const need = feedNeed(type);
-    const survivors = list.filter((animal) => animal.hunger <= need);
+    const survivors = list.filter((animal) => animal.energy > 0);
     if (type === "predator") {
       organisms.predators = survivors;
     } else {
@@ -830,12 +905,12 @@ const ecosystemLab = (() => {
 
     for (let leftIndex = 0; leftIndex < list.length; leftIndex += 1) {
       const left = list[leftIndex];
-      if (left.reproCooldown > 0 || left.hunger > feedNeed(type) * 0.72) {
+      if (!canReproduce(left, type)) {
         continue;
       }
       for (let rightIndex = leftIndex + 1; rightIndex < list.length; rightIndex += 1) {
         const right = list[rightIndex];
-        if (right.reproCooldown > 0 || right.hunger > feedNeed(type) * 0.72) {
+        if (!canReproduce(right, type)) {
           continue;
         }
         if (distanceSquared(left, right) > (left.radius + right.radius + 5) ** 2) {
@@ -848,7 +923,13 @@ const ecosystemLab = (() => {
           x: (left.x + right.x) / 2 + (Math.random() - 0.5) * 16,
           y: (left.y + right.y) / 2 + (Math.random() - 0.5) * 16
         };
-        newborns.push(createAnimal(type, point));
+        const newborn = createAnimal(type, point);
+        newborn.energy = 58;
+        newborn.fedAge = feedNeed(type) * 0.25;
+        newborn.reproCooldown = cooldown;
+        newborns.push(newborn);
+        left.energy -= type === "predator" ? 28 : 22;
+        right.energy -= type === "predator" ? 28 : 22;
         left.reproCooldown = cooldown;
         right.reproCooldown = cooldown;
         break;
