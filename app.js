@@ -756,9 +756,23 @@ const ecosystemLab = (() => {
     animal.energy -= baseDrain * multiplier * delta;
     animal.fedAge += delta;
     animal.mateDrive = Math.max(0, animal.mateDrive - delta / Math.max(2.5, feedNeed(type) * 0.55));
-    if (animal.energy < 45) {
+    if (animal.energy < 42) {
       animal.mateDrive = 0;
     }
+  }
+
+  function foodDrive(animal) {
+    return Math.max(0, Math.min(1, (78 - animal.energy) / 34));
+  }
+
+  function shouldSeekFood(animal, type) {
+    return animal.energy < 44
+      || foodDrive(animal) >= Math.max(0.18, animal.mateDrive * 0.95)
+      || !recentlyFed(animal, type);
+  }
+
+  function shouldEat(animal, type) {
+    return shouldSeekFood(animal, type) && (!animal.mating || animal.energy < 50);
   }
 
   function recentlyFed(animal, type) {
@@ -769,6 +783,7 @@ const ecosystemLab = (() => {
     return animal.mateDrive > 0.12
       && animal.energy >= 58
       && recentlyFed(animal, type)
+      && !shouldSeekFood(animal, type)
       && animal.reproCooldown <= reproductionCooldown(type) * 0.8;
   }
 
@@ -832,6 +847,9 @@ const ecosystemLab = (() => {
   }
 
   function eatPlants(animal) {
+    if (!shouldEat(animal, "herbivore")) {
+      return;
+    }
     const plantIndex = organisms.plants.findIndex((plant) => (
       distanceSquared(animal, plant) < (animal.radius + plant.radius + 2) ** 2
     ));
@@ -842,6 +860,9 @@ const ecosystemLab = (() => {
   }
 
   function eatHerbivores(animal) {
+    if (!shouldEat(animal, "predator")) {
+      return;
+    }
     const herbivoreIndex = organisms.herbivores.findIndex((herbivore) => (
       distanceSquared(animal, herbivore) < (animal.radius + herbivore.radius + 2) ** 2
     ));
@@ -852,10 +873,11 @@ const ecosystemLab = (() => {
   }
 
   function updateAnimal(animal, type, delta) {
+    const seekingFood = shouldSeekFood(animal, type);
     const hungry = animal.energy < 62;
     let target = null;
-    let speedMultiplier = hungry ? 1.1 : 0.9;
-    let energyMultiplier = hungry ? 1.08 : 0.82;
+    let speedMultiplier = seekingFood ? 1.1 : 0.9;
+    let energyMultiplier = seekingFood ? 1.08 : 0.82;
 
     animal.fleeing = false;
     animal.mating = false;
@@ -869,14 +891,14 @@ const ecosystemLab = (() => {
         speedMultiplier = 1.45;
         energyMultiplier = 1.75;
       } else {
-        const mate = wantsMate(animal, type) ? nearestMate(animal, type, 185) : null;
+        const mate = !seekingFood && wantsMate(animal, type) ? nearestMate(animal, type, 230) : null;
         if (mate) {
           target = mate;
           animal.mating = true;
-          speedMultiplier = 1.22;
-          energyMultiplier = 1.08;
-        } else {
-          target = nearest(animal, organisms.plants, hungry ? 175 : 72);
+          speedMultiplier = 1.26;
+          energyMultiplier = 1.02;
+        } else if (seekingFood) {
+          target = nearest(animal, organisms.plants, hungry ? 190 : 115);
         }
       }
     } else {
@@ -886,15 +908,15 @@ const ecosystemLab = (() => {
           animal.exhausted = false;
         }
       } else {
-        const mate = wantsMate(animal, type) ? nearestMate(animal, type, 210) : null;
-        if (mate && animal.energy >= 64) {
+        const mate = !seekingFood && wantsMate(animal, type) ? nearestMate(animal, type, 250) : null;
+        if (mate) {
           target = mate;
           animal.mating = true;
-          speedMultiplier = 1.08;
-          energyMultiplier = 0.95;
+          speedMultiplier = 1.12;
+          energyMultiplier = 0.92;
           animal.stamina = Math.min(1, animal.stamina + delta / Math.max(1, settings.predatorStamina * 2));
-        } else {
-          target = nearest(animal, organisms.herbivores, hungry ? 220 : 96);
+        } else if (seekingFood) {
+          target = nearest(animal, organisms.herbivores, hungry ? 230 : 130);
         }
         if (target) {
           if (!animal.mating) {
