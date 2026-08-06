@@ -6,7 +6,7 @@
     <title>Ericensen Home</title>
     <meta
       name="description"
-      content="A personal homepage and app hub for Ericensen, with NameHat and a simple block stacking game."
+      content="A personal homepage and app hub for Ericensen, with NameHat, Star Hopper, and a simple block stacking game."
     >
     <meta name="theme-color" content="#f7f5ef">
     <meta property="og:title" content="Ericensen Home">
@@ -27,6 +27,7 @@
         <nav class="top-nav" aria-label="Primary navigation">
           <a href="#home" data-nav="home">Home</a>
           <a href="#namehat" data-nav="namehat">NameHat</a>
+          <a href="#starhopper" data-nav="starhopper">Star Hopper</a>
           <a href="#blocks" data-nav="blocks">Blocks</a>
         </nav>
       </header>
@@ -50,7 +51,8 @@
               <canvas id="hub-canvas" width="720" height="520"></canvas>
               <div class="hub-chip chip-one">NameHat</div>
               <div class="hub-chip chip-two">Blocks</div>
-              <div class="hub-chip chip-three">Projects</div>
+              <div class="hub-chip chip-three">Star Hopper</div>
+              <div class="hub-chip chip-four">Projects</div>
             </div>
           </div>
 
@@ -219,6 +221,55 @@
                 <button id="hide-name-button" class="button primary" type="button">Close Name</button>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="starhopper-view" class="view game-view starhopper-view" aria-labelledby="starhopper-title">
+          <div class="tool-header">
+            <div>
+              <p class="eyebrow">Retro space platformer</p>
+              <h1 id="starhopper-title">Star Hopper</h1>
+              <p class="tool-subtitle">An original pixel adventure through a bright little moon outpost.</p>
+            </div>
+            <div class="tool-stats" aria-label="Star Hopper totals">
+              <span><strong id="starhopper-score-value">0</strong>Score</span>
+              <span><strong id="starhopper-crystal-value">0/0</strong>Crystals</span>
+              <span><strong id="starhopper-health-value">3</strong>Shields</span>
+            </div>
+          </div>
+
+          <div class="starhopper-layout">
+            <section class="starhopper-stage" aria-label="Star Hopper game">
+              <canvas id="starhopper-canvas" width="960" height="540" tabindex="0"></canvas>
+              <div id="starhopper-overlay" class="game-overlay starhopper-overlay">
+                <strong id="starhopper-overlay-title">Star Hopper</strong>
+                <span id="starhopper-overlay-subtitle">Level 1: Crater Run</span>
+                <button id="starhopper-action-button" class="button primary" type="button">Start</button>
+              </div>
+            </section>
+
+            <aside class="starhopper-side game-side" aria-label="Star Hopper controls">
+              <div class="starhopper-mission">
+                <p class="eyebrow">Level 1</p>
+                <h2>Crater Run</h2>
+                <div class="mission-meter" aria-hidden="true">
+                  <span id="starhopper-progress-bar"></span>
+                </div>
+                <div class="mission-stats">
+                  <span>Best<strong id="starhopper-best-value">0</strong></span>
+                  <span>Status<strong id="starhopper-status-value">Ready</strong></span>
+                </div>
+              </div>
+              <div class="starhopper-buttons">
+                <button id="starhopper-restart-button" class="button quiet" type="button">Restart</button>
+              </div>
+              <div class="starhopper-mobile-controls" aria-label="Touch controls">
+                <button type="button" data-star-control="left" aria-label="Move left">Left</button>
+                <button type="button" data-star-control="right" aria-label="Move right">Right</button>
+                <button type="button" data-star-control="jump" aria-label="Jump">Jump</button>
+                <button type="button" data-star-control="zap" aria-label="Zap">Zap</button>
+              </div>
+            </aside>
           </div>
         </section>
 

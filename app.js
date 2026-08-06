@@ -5,10 +5,12 @@ import {
   parseNamesFromText
 } from "./lib/nameParser.mjs";
 import { mergeDrawQueue, shuffleNames } from "./lib/drawOrder.mjs";
+import { starHopperLevels } from "./lib/starHopperLevels.mjs";
 
 const routes = new Map([
   ["home", document.querySelector("#home-view")],
   ["namehat", document.querySelector("#namehat-view")],
+  ["starhopper", document.querySelector("#starhopper-view")],
   ["blocks", document.querySelector("#blocks-view")]
 ]);
 
@@ -19,6 +21,13 @@ const appRegistry = [
     kicker: "Private random picker",
     description: "Voice capture, editable rosters, hidden draws, and no paper slips.",
     accent: "teal"
+  },
+  {
+    id: "starhopper",
+    title: "Star Hopper",
+    kicker: "Retro platformer",
+    description: "An original moon-runner with pixel art, crystals, zaps, and one level.",
+    accent: "sky"
   },
   {
     id: "blocks",
@@ -98,9 +107,13 @@ function renderRoute() {
 
   document.body.classList.toggle("blocks-route", activeRoute === "blocks");
   tetris.setRouteActive(activeRoute === "blocks");
+  starHopper.setRouteActive(activeRoute === "starhopper");
 
   if (activeRoute === "blocks") {
     tetris.draw();
+  }
+  if (activeRoute === "starhopper") {
+    starHopper.draw();
   }
 }
 
@@ -531,6 +544,851 @@ function setupHubCanvas() {
 
   paint();
 }
+
+const starHopper = (() => {
+  const canvas = document.querySelector("#starhopper-canvas");
+  const context = canvas.getContext("2d");
+  const overlay = document.querySelector("#starhopper-overlay");
+  const overlayTitle = document.querySelector("#starhopper-overlay-title");
+  const overlaySubtitle = document.querySelector("#starhopper-overlay-subtitle");
+  const actionButton = document.querySelector("#starhopper-action-button");
+  const restartButton = document.querySelector("#starhopper-restart-button");
+  const scoreValue = document.querySelector("#starhopper-score-value");
+  const crystalValue = document.querySelector("#starhopper-crystal-value");
+  const healthValue = document.querySelector("#starhopper-health-value");
+  const bestValue = document.querySelector("#starhopper-best-value");
+  const statusValue = document.querySelector("#starhopper-status-value");
+  const progressBar = document.querySelector("#starhopper-progress-bar");
+  const level = starHopperLevels[0];
+  const tileSize = level.tileSize;
+  const bestKey = "ericensen-starhopper-best-v1";
+  const gravity = 1900;
+  const runSpeed = 260;
+  const jumpVelocity = -660;
+  const zapSpeed = 680;
+  const playerWidth = 24;
+  const playerHeight = 44;
+  const controls = { left: false, right: false };
+
+  let routeActive = false;
+  let animationFrame = 0;
+  let lastTime = 0;
+  let game = createGameState();
+
+  function createGameState() {
+    const world = parseLevel(level);
+    return {
+      ...world,
+      mode: "ready",
+      score: 0,
+      health: 3,
+      crystalsCollected: 0,
+      hasKey: false,
+      cameraX: 0,
+      time: 0,
+      pulses: [],
+      particles: [],
+      player: {
+        x: world.spawn.x,
+        y: world.spawn.y,
+        vx: 0,
+        vy: 0,
+        width: playerWidth,
+        height: playerHeight,
+        facing: 1,
+        grounded: false,
+        coyote: 0,
+        invulnerable: 0,
+        zapCooldown: 0
+      }
+    };
+  }
+
+  function parseLevel(levelData) {
+    const solids = [];
+    const hazards = [];
+    const crystals = [];
+    const enemies = [];
+    let spawn = { x: tileSize * 2, y: tileSize * 10 };
+    let key = null;
+    let exit = null;
+
+    levelData.rows.forEach((rowText, rowIndex) => {
+      [...rowText].forEach((tile, columnIndex) => {
+        const x = columnIndex * tileSize;
+        const y = rowIndex * tileSize;
+        if (tile === "#") {
+          solids.push({
+            x,
+            y,
+            width: tileSize,
+            height: tileSize,
+            type: tile
+          });
+        }
+        if (tile === "=") {
+          solids.push({
+            x,
+            y: y + 8,
+            width: tileSize,
+            height: 16,
+            type: tile
+          });
+        }
+        if (tile === "^") {
+          hazards.push({
+            x: x + 3,
+            y: y + 10,
+            width: tileSize - 6,
+            height: tileSize - 10
+          });
+        }
+        if (tile === "*") {
+          crystals.push({
+            x: x + 9,
+            y: y + 8,
+            width: 14,
+            height: 16,
+            collected: false
+          });
+        }
+        if (tile === "P") {
+          spawn = { x: x + 4, y: y - playerHeight + tileSize };
+        }
+        if (tile === "K") {
+          key = {
+            x: x + 7,
+            y: y + 3,
+            width: 18,
+            height: 26,
+            collected: false
+          };
+        }
+        if (tile === "X") {
+          exit = {
+            x: x - 8,
+            y: y - 48,
+            width: 48,
+            height: 80
+          };
+        }
+        if (tile === "M") {
+          enemies.push({
+            kind: "crawler",
+            x: x + 2,
+            y: y + 8,
+            width: 28,
+            height: 24,
+            vx: 48,
+            vy: 0,
+            originX: x,
+            active: true
+          });
+        }
+        if (tile === "D") {
+          enemies.push({
+            kind: "drifter",
+            x: x,
+            y: y,
+            width: 30,
+            height: 28,
+            originX: x,
+            originY: y,
+            phase: columnIndex * 0.4,
+            active: true
+          });
+        }
+      });
+    });
+
+    return {
+      width: levelData.width * tileSize,
+      height: levelData.rows.length * tileSize,
+      solids,
+      hazards,
+      crystals,
+      enemies,
+      spawn,
+      key,
+      exit
+    };
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function rectsOverlap(left, right) {
+    return left.x < right.x + right.width
+      && left.x + left.width > right.x
+      && left.y < right.y + right.height
+      && left.y + left.height > right.y;
+  }
+
+  function solidAt(rect) {
+    return game.solids.find((solid) => rectsOverlap(rect, solid));
+  }
+
+  function updateOverlay(title, subtitle, buttonLabel) {
+    overlayTitle.textContent = title;
+    overlaySubtitle.textContent = subtitle;
+    actionButton.textContent = buttonLabel;
+  }
+
+  function hideOverlay() {
+    overlay.hidden = true;
+  }
+
+  function showOverlay(title, subtitle, buttonLabel) {
+    updateOverlay(title, subtitle, buttonLabel);
+    overlay.hidden = false;
+  }
+
+  function readBest() {
+    const saved = Number(localStorage.getItem(bestKey) || "0");
+    return Number.isFinite(saved) ? saved : 0;
+  }
+
+  function saveBest() {
+    if (game.score > readBest()) {
+      localStorage.setItem(bestKey, String(game.score));
+    }
+  }
+
+  function statusLabel() {
+    if (game.mode === "won") {
+      return "Clear";
+    }
+    if (game.mode === "over") {
+      return "Down";
+    }
+    if (game.hasKey) {
+      return "Gate";
+    }
+    return game.mode === "playing" ? "Run" : "Ready";
+  }
+
+  function updateHud() {
+    scoreValue.textContent = game.score;
+    crystalValue.textContent = `${game.crystalsCollected}/${game.crystals.length}`;
+    healthValue.textContent = game.health;
+    bestValue.textContent = Math.max(readBest(), game.score);
+    statusValue.textContent = statusLabel();
+    const progress = clamp((game.player.x / Math.max(1, game.width - canvas.width)) * 100, 0, 100);
+    progressBar.style.width = `${progress}%`;
+  }
+
+  function start() {
+    game = createGameState();
+    game.mode = "playing";
+    controls.left = false;
+    controls.right = false;
+    hideOverlay();
+    updateHud();
+    canvas.focus({ preventScroll: true });
+    startLoop();
+  }
+
+  function endGame() {
+    game.mode = "over";
+    saveBest();
+    showOverlay("Signal Lost", "Crater Run", "Try Again");
+    updateHud();
+  }
+
+  function winGame() {
+    if (game.mode !== "playing") {
+      return;
+    }
+    game.mode = "won";
+    game.score += 500 + game.health * 120;
+    saveBest();
+    showOverlay("Level Clear", "Crater Run", "Play Again");
+    updateHud();
+  }
+
+  function resetPlayer() {
+    game.player.x = game.spawn.x;
+    game.player.y = game.spawn.y;
+    game.player.vx = 0;
+    game.player.vy = 0;
+    game.player.invulnerable = 1.2;
+    game.cameraX = 0;
+  }
+
+  function damagePlayer() {
+    if (game.mode !== "playing" || game.player.invulnerable > 0) {
+      return;
+    }
+    game.health -= 1;
+    game.player.vy = -420;
+    game.player.vx = -game.player.facing * 180;
+    game.player.invulnerable = 1.1;
+    if (game.health <= 0) {
+      endGame();
+      return;
+    }
+    resetPlayer();
+  }
+
+  function jump() {
+    if (game.mode !== "playing") {
+      return;
+    }
+    if (game.player.grounded || game.player.coyote > 0) {
+      game.player.vy = jumpVelocity;
+      game.player.grounded = false;
+      game.player.coyote = 0;
+      sparkle(game.player.x + 12, game.player.y + game.player.height, "#f2d16b", 5);
+    }
+  }
+
+  function zap() {
+    if (game.mode !== "playing" || game.player.zapCooldown > 0) {
+      return;
+    }
+    const x = game.player.facing > 0
+      ? game.player.x + game.player.width
+      : game.player.x - 12;
+    game.pulses.push({
+      x,
+      y: game.player.y + 18,
+      width: 12,
+      height: 8,
+      vx: game.player.facing * zapSpeed,
+      life: 0.9
+    });
+    game.player.zapCooldown = 0.24;
+  }
+
+  function sparkle(x, y, color, count) {
+    for (let index = 0; index < count; index += 1) {
+      game.particles.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 130,
+        vy: -60 - Math.random() * 130,
+        life: 0.35 + Math.random() * 0.35,
+        color
+      });
+    }
+  }
+
+  function resolveHorizontal(entity) {
+    const hit = solidAt(entity);
+    if (!hit) {
+      return false;
+    }
+    if (entity.vx > 0) {
+      entity.x = hit.x - entity.width;
+    } else if (entity.vx < 0) {
+      entity.x = hit.x + hit.width;
+    }
+    entity.vx = 0;
+    return true;
+  }
+
+  function resolveVertical(entity) {
+    const hit = solidAt(entity);
+    if (!hit) {
+      return false;
+    }
+    if (entity.vy > 0) {
+      entity.y = hit.y - entity.height;
+      entity.grounded = true;
+      entity.coyote = 0.1;
+    } else if (entity.vy < 0) {
+      entity.y = hit.y + hit.height;
+    }
+    entity.vy = 0;
+    return true;
+  }
+
+  function updatePlayer(delta) {
+    const player = game.player;
+    const direction = Number(controls.right) - Number(controls.left);
+    player.vx = direction * runSpeed;
+    if (direction !== 0) {
+      player.facing = direction;
+    }
+    player.vy += gravity * delta;
+    player.zapCooldown = Math.max(0, player.zapCooldown - delta);
+    player.invulnerable = Math.max(0, player.invulnerable - delta);
+
+    player.x += player.vx * delta;
+    resolveHorizontal(player);
+    player.x = clamp(player.x, 0, game.width - player.width);
+
+    player.grounded = false;
+    player.y += player.vy * delta;
+    resolveVertical(player);
+    if (!player.grounded) {
+      player.coyote = Math.max(0, player.coyote - delta);
+    }
+
+    if (player.y > game.height + 120) {
+      damagePlayer();
+    }
+  }
+
+  function updateEnemies(delta) {
+    game.enemies.forEach((enemy) => {
+      if (!enemy.active) {
+        return;
+      }
+      if (enemy.kind === "drifter") {
+        enemy.x = enemy.originX + Math.sin(game.time * 1.35 + enemy.phase) * 62;
+        enemy.y = enemy.originY + Math.sin(game.time * 2.2 + enemy.phase) * 18;
+        return;
+      }
+
+      enemy.vy += gravity * delta;
+      const previousVx = enemy.vx;
+      enemy.x += enemy.vx * delta;
+      if (resolveHorizontal(enemy)) {
+        enemy.vx = -previousVx;
+      }
+      if (Math.abs(enemy.x - enemy.originX) > 126) {
+        enemy.vx = enemy.x > enemy.originX ? -Math.abs(enemy.vx) : Math.abs(enemy.vx);
+      }
+      enemy.grounded = false;
+      enemy.y += enemy.vy * delta;
+      resolveVertical(enemy);
+
+      const probeX = enemy.vx > 0 ? enemy.x + enemy.width + 3 : enemy.x - 3;
+      const groundProbe = {
+        x: probeX,
+        y: enemy.y + enemy.height + 4,
+        width: 4,
+        height: 6
+      };
+      if (!solidAt(groundProbe)) {
+        enemy.vx *= -1;
+      }
+    });
+  }
+
+  function updatePulses(delta) {
+    game.pulses.forEach((pulse) => {
+      pulse.x += pulse.vx * delta;
+      pulse.life -= delta;
+      if (solidAt(pulse)) {
+        pulse.life = 0;
+      }
+
+      game.enemies.forEach((enemy) => {
+        if (!enemy.active || pulse.life <= 0 || !rectsOverlap(pulse, enemy)) {
+          return;
+        }
+        enemy.active = false;
+        pulse.life = 0;
+        game.score += 150;
+        sparkle(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, "#8ef0ff", 9);
+      });
+    });
+    game.pulses = game.pulses.filter((pulse) => pulse.life > 0);
+  }
+
+  function updateParticles(delta) {
+    game.particles.forEach((particle) => {
+      particle.life -= delta;
+      particle.vy += 420 * delta;
+      particle.x += particle.vx * delta;
+      particle.y += particle.vy * delta;
+    });
+    game.particles = game.particles.filter((particle) => particle.life > 0);
+  }
+
+  function collectItems() {
+    game.crystals.forEach((crystal) => {
+      if (crystal.collected || !rectsOverlap(game.player, crystal)) {
+        return;
+      }
+      crystal.collected = true;
+      game.crystalsCollected += 1;
+      game.score += 50;
+      sparkle(crystal.x + 7, crystal.y + 8, "#f2d16b", 8);
+    });
+
+    if (game.key && !game.key.collected && rectsOverlap(game.player, game.key)) {
+      game.key.collected = true;
+      game.hasKey = true;
+      game.score += 250;
+      sparkle(game.key.x + 9, game.key.y + 13, "#b48dff", 12);
+    }
+  }
+
+  function checkThreats() {
+    if (game.hazards.some((hazard) => rectsOverlap(game.player, hazard))) {
+      damagePlayer();
+      return;
+    }
+    if (game.enemies.some((enemy) => enemy.active && rectsOverlap(game.player, enemy))) {
+      damagePlayer();
+    }
+  }
+
+  function checkExit() {
+    if (game.exit && game.hasKey && rectsOverlap(game.player, game.exit)) {
+      winGame();
+    }
+  }
+
+  function updateCamera() {
+    const target = game.player.x - canvas.width * 0.42;
+    game.cameraX += (target - game.cameraX) * 0.12;
+    game.cameraX = clamp(game.cameraX, 0, Math.max(0, game.width - canvas.width));
+  }
+
+  function update(delta) {
+    if (game.mode !== "playing") {
+      return;
+    }
+    game.time += delta;
+    updatePlayer(delta);
+    updateEnemies(delta);
+    updatePulses(delta);
+    updateParticles(delta);
+    collectItems();
+    checkThreats();
+    checkExit();
+    updateCamera();
+    updateHud();
+  }
+
+  function startLoop() {
+    if (!routeActive || animationFrame) {
+      return;
+    }
+    lastTime = performance.now();
+    animationFrame = requestAnimationFrame(loop);
+  }
+
+  function stopLoop() {
+    if (animationFrame) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = 0;
+    }
+  }
+
+  function loop(time) {
+    animationFrame = 0;
+    const delta = Math.min(0.033, (time - lastTime) / 1000 || 0);
+    lastTime = time;
+    update(delta);
+    draw();
+    if (routeActive) {
+      animationFrame = requestAnimationFrame(loop);
+    }
+  }
+
+  function drawBackground() {
+    const sky = context.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, "#121a3d");
+    sky.addColorStop(0.52, "#263876");
+    sky.addColorStop(1, "#5d477e");
+    context.fillStyle = sky;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = "rgba(255, 255, 255, 0.72)";
+    for (let index = 0; index < 54; index += 1) {
+      const x = (index * 173 - game.cameraX * 0.18) % canvas.width;
+      const y = 22 + ((index * 47) % 210);
+      const size = index % 7 === 0 ? 3 : 2;
+      context.fillRect((x + canvas.width) % canvas.width, y, size, size);
+    }
+
+    context.fillStyle = "#e9d77a";
+    context.fillRect(760 - game.cameraX * 0.08, 58, 72, 72);
+    context.fillStyle = "rgba(255, 255, 255, 0.18)";
+    context.fillRect(780 - game.cameraX * 0.08, 74, 16, 16);
+    context.fillRect(814 - game.cameraX * 0.08, 100, 10, 10);
+
+    drawParallaxHills("#27375e", 0.24, 326, 84);
+    drawParallaxHills("#1e2d48", 0.42, 378, 112);
+  }
+
+  function drawParallaxHills(color, speed, baseY, height) {
+    context.fillStyle = color;
+    context.beginPath();
+    context.moveTo(0, canvas.height);
+    for (let x = -80; x <= canvas.width + 120; x += 120) {
+      const worldX = x + (game.cameraX * speed) % 120;
+      context.lineTo(worldX, baseY);
+      context.lineTo(worldX + 60, baseY - height);
+      context.lineTo(worldX + 120, baseY);
+    }
+    context.lineTo(canvas.width, canvas.height);
+    context.closePath();
+    context.fill();
+  }
+
+  function drawSolid(tile) {
+    const x = tile.x;
+    const y = tile.y;
+    if (tile.type === "=") {
+      context.fillStyle = "#f2b45f";
+      context.fillRect(x, y, tileSize, 16);
+      context.fillStyle = "#ffdc8f";
+      context.fillRect(x + 2, y + 1, tileSize - 4, 4);
+      context.fillStyle = "#9a5d3d";
+      context.fillRect(x, y + 14, tileSize, 4);
+      return;
+    }
+
+    context.fillStyle = "#704b86";
+    context.fillRect(x, y, tileSize, tileSize);
+    context.fillStyle = "#9b6fbb";
+    context.fillRect(x + 2, y + 2, tileSize - 4, 6);
+    context.fillStyle = "#4c355f";
+    context.fillRect(x + 5, y + 18, 8, 5);
+    context.fillRect(x + 22, y + 12, 5, 9);
+  }
+
+  function drawHazard(hazard) {
+    context.fillStyle = "#f66b5b";
+    context.beginPath();
+    context.moveTo(hazard.x - 1, hazard.y + hazard.height);
+    context.lineTo(hazard.x + hazard.width / 2, hazard.y);
+    context.lineTo(hazard.x + hazard.width + 1, hazard.y + hazard.height);
+    context.closePath();
+    context.fill();
+    context.fillStyle = "#ffd3c2";
+    context.fillRect(hazard.x + hazard.width / 2 - 1, hazard.y + 8, 2, 9);
+  }
+
+  function drawCrystal(crystal) {
+    if (crystal.collected) {
+      return;
+    }
+    const bob = Math.sin(game.time * 5 + crystal.x * 0.02) * 3;
+    const x = crystal.x;
+    const y = crystal.y + bob;
+    context.fillStyle = "#ffe88a";
+    context.fillRect(x + 4, y, 6, 4);
+    context.fillRect(x + 2, y + 4, 10, 6);
+    context.fillRect(x + 5, y + 10, 4, 6);
+    context.fillStyle = "#fff8c7";
+    context.fillRect(x + 5, y + 3, 3, 3);
+  }
+
+  function drawKey() {
+    if (!game.key || game.key.collected) {
+      return;
+    }
+    const bob = Math.sin(game.time * 4) * 4;
+    const x = game.key.x;
+    const y = game.key.y + bob;
+    context.fillStyle = "#b48dff";
+    context.fillRect(x + 6, y, 6, 22);
+    context.fillRect(x, y + 2, 18, 8);
+    context.fillStyle = "#f3e8ff";
+    context.fillRect(x + 3, y + 4, 5, 3);
+    context.fillRect(x + 12, y + 16, 5, 4);
+  }
+
+  function drawExit() {
+    if (!game.exit) {
+      return;
+    }
+    const x = game.exit.x;
+    const y = game.exit.y;
+    context.fillStyle = game.hasKey ? "#5ce1c7" : "#556178";
+    context.fillRect(x + 4, y + 8, 40, 72);
+    context.fillStyle = "#18213f";
+    context.fillRect(x + 12, y + 18, 24, 52);
+    context.fillStyle = game.hasKey ? "rgba(92, 225, 199, 0.48)" : "rgba(255, 255, 255, 0.16)";
+    context.fillRect(x + 16, y + 22, 16, 44);
+    context.fillStyle = "#f2d16b";
+    context.fillRect(x + 18, y, 12, 12);
+  }
+
+  function drawEnemy(enemy) {
+    if (!enemy.active) {
+      return;
+    }
+    if (enemy.kind === "drifter") {
+      context.fillStyle = "#80e6ff";
+      context.fillRect(enemy.x + 5, enemy.y + 7, 20, 14);
+      context.fillStyle = "#d5fbff";
+      context.fillRect(enemy.x + 9, enemy.y + 10, 5, 4);
+      context.fillRect(enemy.x + 18, enemy.y + 10, 5, 4);
+      context.fillStyle = "#35507d";
+      context.fillRect(enemy.x, enemy.y + 12, 5, 5);
+      context.fillRect(enemy.x + 25, enemy.y + 12, 5, 5);
+      return;
+    }
+
+    context.fillStyle = "#78d45e";
+    context.fillRect(enemy.x + 2, enemy.y + 8, 24, 14);
+    context.fillStyle = "#b8f49d";
+    context.fillRect(enemy.x + 7, enemy.y + 4, 14, 8);
+    context.fillStyle = "#20283f";
+    context.fillRect(enemy.x + (enemy.vx > 0 ? 19 : 7), enemy.y + 7, 3, 3);
+    context.fillStyle = "#4a8e3d";
+    context.fillRect(enemy.x + 5, enemy.y + 22, 7, 3);
+    context.fillRect(enemy.x + 17, enemy.y + 22, 7, 3);
+  }
+
+  function drawPulse(pulse) {
+    context.fillStyle = "#8ef0ff";
+    context.fillRect(pulse.x, pulse.y, pulse.width, pulse.height);
+    context.fillStyle = "#ffffff";
+    context.fillRect(pulse.x + 2, pulse.y + 2, pulse.width - 4, 2);
+  }
+
+  function drawParticle(particle) {
+    context.globalAlpha = clamp(particle.life * 2, 0, 1);
+    context.fillStyle = particle.color;
+    context.fillRect(particle.x, particle.y, 4, 4);
+    context.globalAlpha = 1;
+  }
+
+  function drawPlayer() {
+    const player = game.player;
+    if (player.invulnerable > 0 && Math.floor(game.time * 18) % 2 === 0) {
+      return;
+    }
+    const x = Math.round(player.x);
+    const y = Math.round(player.y);
+    const faceOffset = player.facing > 0 ? 11 : 4;
+
+    context.fillStyle = "#ffcf6d";
+    context.fillRect(x + 4, y + 2, 16, 16);
+    context.fillStyle = "#f5f0cf";
+    context.fillRect(x + faceOffset, y + 6, 8, 5);
+    context.fillStyle = "#17202f";
+    context.fillRect(x + faceOffset + (player.facing > 0 ? 5 : 0), y + 8, 2, 2);
+    context.fillStyle = "#42d3c7";
+    context.fillRect(x + 5, y + 18, 14, 18);
+    context.fillStyle = "#2b8f8d";
+    context.fillRect(x + 3, y + 22, 4, 12);
+    context.fillRect(x + 18, y + 22, 4, 12);
+    context.fillStyle = "#fb6f69";
+    context.fillRect(x + 2, y + 36, 8, 6);
+    context.fillRect(x + 14, y + 36, 8, 6);
+  }
+
+  function drawWorld() {
+    drawBackground();
+    context.save();
+    context.translate(-Math.round(game.cameraX), 0);
+
+    const minX = game.cameraX - tileSize;
+    const maxX = game.cameraX + canvas.width + tileSize;
+    game.solids.forEach((solid) => {
+      if (solid.x + solid.width >= minX && solid.x <= maxX) {
+        drawSolid(solid);
+      }
+    });
+    game.hazards.forEach((hazard) => {
+      if (hazard.x + hazard.width >= minX && hazard.x <= maxX) {
+        drawHazard(hazard);
+      }
+    });
+    drawExit();
+    game.crystals.forEach(drawCrystal);
+    drawKey();
+    game.enemies.forEach(drawEnemy);
+    game.pulses.forEach(drawPulse);
+    game.particles.forEach(drawParticle);
+    drawPlayer();
+    context.restore();
+  }
+
+  function draw() {
+    context.imageSmoothingEnabled = false;
+    drawWorld();
+    updateHud();
+  }
+
+  function handleKeyboard(event, isDown) {
+    if (!routes.get("starhopper").classList.contains("active-view")) {
+      return;
+    }
+    const target = event.target;
+    const isTextInput = target instanceof HTMLElement
+      && (target.matches("input, textarea, select") || target.isContentEditable);
+    if (isTextInput) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+    if (event.key === "ArrowLeft" || key === "a") {
+      event.preventDefault();
+      controls.left = isDown;
+    }
+    if (event.key === "ArrowRight" || key === "d") {
+      event.preventDefault();
+      controls.right = isDown;
+    }
+    if (isDown && (event.key === "ArrowUp" || key === "w" || event.key === " ")) {
+      event.preventDefault();
+      jump();
+    }
+    if (isDown && (key === "z" || key === "x" || key === "k")) {
+      event.preventDefault();
+      zap();
+    }
+    if (isDown && event.key === "Enter" && game.mode !== "playing") {
+      event.preventDefault();
+      start();
+    }
+  }
+
+  function bindTouchControls() {
+    document.querySelectorAll("[data-star-control]").forEach((button) => {
+      const control = button.dataset.starControl;
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        button.setPointerCapture?.(event.pointerId);
+        if (control === "left" || control === "right") {
+          controls[control] = true;
+        }
+        if (control === "jump") {
+          jump();
+        }
+        if (control === "zap") {
+          zap();
+        }
+      });
+      const release = () => {
+        if (control === "left" || control === "right") {
+          controls[control] = false;
+        }
+      };
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("pointerleave", release);
+      button.addEventListener("lostpointercapture", release);
+      button.addEventListener("click", (event) => event.preventDefault());
+    });
+  }
+
+  actionButton.addEventListener("click", start);
+  restartButton.addEventListener("click", start);
+  document.addEventListener("keydown", (event) => handleKeyboard(event, true));
+  document.addEventListener("keyup", (event) => handleKeyboard(event, false));
+  bindTouchControls();
+  showOverlay("Star Hopper", "Level 1: Crater Run", "Start");
+  updateHud();
+  draw();
+
+  return {
+    draw,
+    setRouteActive(isActive) {
+      routeActive = isActive;
+      if (routeActive) {
+        draw();
+        startLoop();
+      } else {
+        stopLoop();
+        controls.left = false;
+        controls.right = false;
+      }
+    }
+  };
+})();
 
 const tetris = (() => {
   const boardCanvas = document.querySelector("#tetris-board");
