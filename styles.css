@@ -495,6 +495,10 @@ button kbd {
   font-size: 1.6rem;
 }
 
+#ecosystem-view .tool-stats {
+  grid-template-columns: repeat(4, minmax(76px, 1fr));
+}
+
 .namehat-layout {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1fr);
@@ -1659,6 +1663,10 @@ a:focus-visible {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  #ecosystem-view .tool-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .draw-body {
     grid-template-columns: 1fr;
   }
@@ -1705,6 +1713,10 @@ a:focus-visible {
     min-height: 68px;
     padding: 8px 5px;
     font-size: 0.66rem;
+  }
+
+  #ecosystem-view .tool-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .name-row {

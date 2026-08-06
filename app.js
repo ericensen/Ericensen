@@ -575,6 +575,7 @@ const ecosystemLab = (() => {
   const context = canvas.getContext("2d");
   const actionButton = document.querySelector("#ecosystem-action-button");
   const reseedButton = document.querySelector("#ecosystem-reseed-button");
+  const timerValue = document.querySelector("#eco-timer");
   const plantCount = document.querySelector("#eco-plant-count");
   const herbivoreCount = document.querySelector("#eco-herbivore-count");
   const predatorCount = document.querySelector("#eco-predator-count");
@@ -608,6 +609,8 @@ const ecosystemLab = (() => {
   let running = true;
   let animationFrame = 0;
   let lastTime = 0;
+  let elapsedTime = 0;
+  let simulationEnded = false;
   let plantSpawnCarry = 0;
   let organisms = emptyOrganisms();
 
@@ -680,6 +683,8 @@ const ecosystemLab = (() => {
     readSettings();
     organisms = emptyOrganisms();
     plantSpawnCarry = 0;
+    elapsedTime = 0;
+    simulationEnded = false;
     for (let index = 0; index < settings.startPlants; index += 1) {
       spawnPlant();
     }
@@ -689,11 +694,17 @@ const ecosystemLab = (() => {
     for (let index = 0; index < settings.startPredators; index += 1) {
       spawnAnimal("predator");
     }
-    running = true;
+    running = hasAnimals();
+    simulationEnded = !running;
     updateActionButton();
+    updateTimer();
     updateCounts();
     draw();
     startLoop();
+  }
+
+  function hasAnimals() {
+    return organisms.herbivores.length + organisms.predators.length > 0;
   }
 
   function distanceSquared(left, right) {
@@ -1027,6 +1038,7 @@ const ecosystemLab = (() => {
 
   function update(delta) {
     readSettings();
+    elapsedTime += delta;
     spawnPlants(delta);
     organisms.plants.forEach((plant) => {
       plant.age += delta;
@@ -1037,6 +1049,8 @@ const ecosystemLab = (() => {
     removeStarved("predator");
     reproduce("herbivore");
     reproduce("predator");
+    finishIfExtinct();
+    updateTimer();
     updateCounts();
   }
 
@@ -1044,6 +1058,30 @@ const ecosystemLab = (() => {
     plantCount.textContent = organisms.plants.length;
     herbivoreCount.textContent = organisms.herbivores.length;
     predatorCount.textContent = organisms.predators.length;
+  }
+
+  function formatElapsed(seconds) {
+    const totalSeconds = Math.floor(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secondsPart = String(totalSeconds % 60).padStart(2, "0");
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, "0")}:${secondsPart}`;
+    }
+    return `${minutes}:${secondsPart}`;
+  }
+
+  function updateTimer() {
+    timerValue.textContent = formatElapsed(elapsedTime);
+  }
+
+  function finishIfExtinct() {
+    if (hasAnimals()) {
+      return;
+    }
+    running = false;
+    simulationEnded = true;
+    updateActionButton();
   }
 
   function drawBackground() {
@@ -1081,10 +1119,23 @@ const ecosystemLab = (() => {
   }
 
   function updateActionButton() {
+    if (simulationEnded) {
+      const labelNode = document.createElement("span");
+      labelNode.className = "button-label";
+      labelNode.textContent = "Ended";
+      actionButton.replaceChildren(labelNode);
+      actionButton.setAttribute("aria-label", "Simulation ended; reseed ecosystem to start again");
+      actionButton.disabled = true;
+      return;
+    }
+    actionButton.disabled = false;
     setShortcutLabel(actionButton, running ? "Pause" : "Run", "Space", running ? "Pause simulation" : "Run simulation");
   }
 
   function toggleRunning() {
+    if (simulationEnded) {
+      return;
+    }
     running = !running;
     updateActionButton();
     if (running) {
