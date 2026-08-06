@@ -10,6 +10,7 @@ import { starHopperLevels } from "./lib/starHopperLevels.mjs";
 const routes = new Map([
   ["home", document.querySelector("#home-view")],
   ["namehat", document.querySelector("#namehat-view")],
+  ["ecosystem", document.querySelector("#ecosystem-view")],
   ["starhopper", document.querySelector("#starhopper-view")],
   ["blocks", document.querySelector("#blocks-view")]
 ]);
@@ -21,6 +22,13 @@ const appRegistry = [
     kicker: "Private random picker",
     description: "Voice capture, editable rosters, hidden draws, and no paper slips.",
     accent: "teal"
+  },
+  {
+    id: "ecosystem",
+    title: "Ecosystem Lab",
+    kicker: "Simulation",
+    description: "Tune predators, herbivores, plants, hunger, movement, and reproduction.",
+    accent: "olive"
   },
   {
     id: "starhopper",
@@ -108,12 +116,16 @@ function renderRoute() {
   document.body.classList.toggle("blocks-route", activeRoute === "blocks");
   tetris.setRouteActive(activeRoute === "blocks");
   starHopper.setRouteActive(activeRoute === "starhopper");
+  ecosystemLab.setRouteActive(activeRoute === "ecosystem");
 
   if (activeRoute === "blocks") {
     tetris.draw();
   }
   if (activeRoute === "starhopper") {
     starHopper.draw();
+  }
+  if (activeRoute === "ecosystem") {
+    ecosystemLab.draw();
   }
 }
 
@@ -557,6 +569,447 @@ function setupHubCanvas() {
 
   paint();
 }
+
+const ecosystemLab = (() => {
+  const canvas = document.querySelector("#ecosystem-canvas");
+  const context = canvas.getContext("2d");
+  const actionButton = document.querySelector("#ecosystem-action-button");
+  const reseedButton = document.querySelector("#ecosystem-reseed-button");
+  const plantCount = document.querySelector("#eco-plant-count");
+  const herbivoreCount = document.querySelector("#eco-herbivore-count");
+  const predatorCount = document.querySelector("#eco-predator-count");
+  const controls = [
+    ["startPlants", "#eco-start-plants", "#eco-start-plants-value"],
+    ["startHerbivores", "#eco-start-herbivores", "#eco-start-herbivores-value"],
+    ["startPredators", "#eco-start-predators", "#eco-start-predators-value"],
+    ["plantSpawn", "#eco-plant-spawn", "#eco-plant-spawn-value"],
+    ["herbivoreSpeed", "#eco-herbivore-speed", "#eco-herbivore-speed-value"],
+    ["herbivoreFeed", "#eco-herbivore-feed", "#eco-herbivore-feed-value"],
+    ["herbivoreRepro", "#eco-herbivore-repro", "#eco-herbivore-repro-value"],
+    ["predatorSpeed", "#eco-predator-speed", "#eco-predator-speed-value"],
+    ["predatorFeed", "#eco-predator-feed", "#eco-predator-feed-value"],
+    ["predatorRepro", "#eco-predator-repro", "#eco-predator-repro-value"]
+  ].map(([key, inputSelector, outputSelector]) => ({
+    key,
+    input: document.querySelector(inputSelector),
+    output: document.querySelector(outputSelector)
+  }));
+  const colors = {
+    plant: "#52a85f",
+    herbivore: "#2f7ed8",
+    predator: "#d7564a"
+  };
+  const settings = {};
+  const world = { width: canvas.width, height: canvas.height };
+  const caps = { plants: 700, herbivores: 220, predators: 120 };
+  let routeActive = false;
+  let running = true;
+  let animationFrame = 0;
+  let lastTime = 0;
+  let plantSpawnCarry = 0;
+  let organisms = emptyOrganisms();
+
+  function emptyOrganisms() {
+    return { plants: [], herbivores: [], predators: [] };
+  }
+
+  function readSettings() {
+    controls.forEach(({ key, input, output }) => {
+      const value = Number(input.value);
+      settings[key] = value;
+      output.textContent = Number.isInteger(value) ? String(value) : value.toFixed(1);
+    });
+  }
+
+  function randomPoint(margin = 10) {
+    return {
+      x: margin + Math.random() * (world.width - margin * 2),
+      y: margin + Math.random() * (world.height - margin * 2)
+    };
+  }
+
+  function randomDirection() {
+    const angle = Math.random() * Math.PI * 2;
+    return { x: Math.cos(angle), y: Math.sin(angle) };
+  }
+
+  function spawnPlant(point = randomPoint(8)) {
+    if (organisms.plants.length >= caps.plants) {
+      return;
+    }
+    organisms.plants.push({
+      ...point,
+      radius: 3 + Math.random() * 1.4,
+      age: 0
+    });
+  }
+
+  function createAnimal(type, point = randomPoint(18)) {
+    const direction = randomDirection();
+    return {
+      ...point,
+      type,
+      radius: type === "predator" ? 5 : 4,
+      hunger: Math.random() * 4,
+      reproCooldown: Math.random() * reproductionCooldown(type),
+      wanderTimer: 0,
+      vx: direction.x,
+      vy: direction.y
+    };
+  }
+
+  function spawnAnimal(type, point = randomPoint(18)) {
+    const list = type === "predator" ? organisms.predators : organisms.herbivores;
+    const cap = type === "predator" ? caps.predators : caps.herbivores;
+    if (list.length >= cap) {
+      return;
+    }
+    list.push(createAnimal(type, point));
+  }
+
+  function seed() {
+    readSettings();
+    organisms = emptyOrganisms();
+    plantSpawnCarry = 0;
+    for (let index = 0; index < settings.startPlants; index += 1) {
+      spawnPlant();
+    }
+    for (let index = 0; index < settings.startHerbivores; index += 1) {
+      spawnAnimal("herbivore");
+    }
+    for (let index = 0; index < settings.startPredators; index += 1) {
+      spawnAnimal("predator");
+    }
+    running = true;
+    updateActionButton();
+    updateCounts();
+    draw();
+    startLoop();
+  }
+
+  function distanceSquared(left, right) {
+    const dx = left.x - right.x;
+    const dy = left.y - right.y;
+    return dx * dx + dy * dy;
+  }
+
+  function nearest(source, candidates, maxDistance) {
+    const maxSquared = maxDistance * maxDistance;
+    let best = null;
+    let bestDistance = maxSquared;
+    candidates.forEach((candidate) => {
+      const distance = distanceSquared(source, candidate);
+      if (distance < bestDistance) {
+        best = candidate;
+        bestDistance = distance;
+      }
+    });
+    return best;
+  }
+
+  function feedNeed(type) {
+    return type === "predator" ? settings.predatorFeed : settings.herbivoreFeed;
+  }
+
+  function movementSpeed(type) {
+    return type === "predator" ? settings.predatorSpeed : settings.herbivoreSpeed;
+  }
+
+  function reproductionCooldown(type) {
+    return type === "predator" ? settings.predatorRepro : settings.herbivoreRepro;
+  }
+
+  function steerToward(animal, target, strength = 0.08) {
+    const dx = target.x - animal.x;
+    const dy = target.y - animal.y;
+    const length = Math.hypot(dx, dy) || 1;
+    animal.vx += (dx / length) * strength;
+    animal.vy += (dy / length) * strength;
+  }
+
+  function wander(animal, delta) {
+    animal.wanderTimer -= delta;
+    if (animal.wanderTimer <= 0) {
+      const direction = randomDirection();
+      animal.vx += direction.x * 0.8;
+      animal.vy += direction.y * 0.8;
+      animal.wanderTimer = 0.7 + Math.random() * 1.6;
+    }
+  }
+
+  function normalizeVelocity(animal) {
+    const length = Math.hypot(animal.vx, animal.vy) || 1;
+    animal.vx /= length;
+    animal.vy /= length;
+  }
+
+  function containAnimal(animal) {
+    if (animal.x < animal.radius) {
+      animal.x = animal.radius;
+      animal.vx = Math.abs(animal.vx);
+    }
+    if (animal.x > world.width - animal.radius) {
+      animal.x = world.width - animal.radius;
+      animal.vx = -Math.abs(animal.vx);
+    }
+    if (animal.y < animal.radius) {
+      animal.y = animal.radius;
+      animal.vy = Math.abs(animal.vy);
+    }
+    if (animal.y > world.height - animal.radius) {
+      animal.y = world.height - animal.radius;
+      animal.vy = -Math.abs(animal.vy);
+    }
+  }
+
+  function eatPlants(animal) {
+    const plantIndex = organisms.plants.findIndex((plant) => (
+      distanceSquared(animal, plant) < (animal.radius + plant.radius + 2) ** 2
+    ));
+    if (plantIndex >= 0) {
+      organisms.plants.splice(plantIndex, 1);
+      animal.hunger = 0;
+      animal.reproCooldown = Math.max(0, animal.reproCooldown - 1.25);
+    }
+  }
+
+  function eatHerbivores(animal) {
+    const herbivoreIndex = organisms.herbivores.findIndex((herbivore) => (
+      distanceSquared(animal, herbivore) < (animal.radius + herbivore.radius + 2) ** 2
+    ));
+    if (herbivoreIndex >= 0) {
+      organisms.herbivores.splice(herbivoreIndex, 1);
+      animal.hunger = 0;
+      animal.reproCooldown = Math.max(0, animal.reproCooldown - 1.5);
+    }
+  }
+
+  function updateAnimal(animal, type, delta) {
+    const hungry = animal.hunger > feedNeed(type) * 0.35;
+    const target = type === "predator"
+      ? nearest(animal, organisms.herbivores, hungry ? 210 : 90)
+      : nearest(animal, organisms.plants, hungry ? 170 : 70);
+
+    if (target) {
+      steerToward(animal, target, hungry ? 0.18 : 0.08);
+    } else {
+      wander(animal, delta);
+    }
+
+    animal.hunger += delta;
+    animal.reproCooldown = Math.max(0, animal.reproCooldown - delta);
+    normalizeVelocity(animal);
+    const speed = movementSpeed(type) * (hungry ? 1.12 : 0.92);
+    animal.x += animal.vx * speed * delta;
+    animal.y += animal.vy * speed * delta;
+    containAnimal(animal);
+
+    if (type === "predator") {
+      eatHerbivores(animal);
+    } else {
+      eatPlants(animal);
+    }
+  }
+
+  function removeStarved(type) {
+    const list = type === "predator" ? organisms.predators : organisms.herbivores;
+    const need = feedNeed(type);
+    const survivors = list.filter((animal) => animal.hunger <= need);
+    if (type === "predator") {
+      organisms.predators = survivors;
+    } else {
+      organisms.herbivores = survivors;
+    }
+  }
+
+  function reproduce(type) {
+    const list = type === "predator" ? organisms.predators : organisms.herbivores;
+    const cap = type === "predator" ? caps.predators : caps.herbivores;
+    const newborns = [];
+    const cooldown = reproductionCooldown(type);
+
+    for (let leftIndex = 0; leftIndex < list.length; leftIndex += 1) {
+      const left = list[leftIndex];
+      if (left.reproCooldown > 0 || left.hunger > feedNeed(type) * 0.72) {
+        continue;
+      }
+      for (let rightIndex = leftIndex + 1; rightIndex < list.length; rightIndex += 1) {
+        const right = list[rightIndex];
+        if (right.reproCooldown > 0 || right.hunger > feedNeed(type) * 0.72) {
+          continue;
+        }
+        if (distanceSquared(left, right) > (left.radius + right.radius + 5) ** 2) {
+          continue;
+        }
+        if (list.length + newborns.length >= cap) {
+          return;
+        }
+        const point = {
+          x: (left.x + right.x) / 2 + (Math.random() - 0.5) * 16,
+          y: (left.y + right.y) / 2 + (Math.random() - 0.5) * 16
+        };
+        newborns.push(createAnimal(type, point));
+        left.reproCooldown = cooldown;
+        right.reproCooldown = cooldown;
+        break;
+      }
+    }
+
+    list.push(...newborns);
+  }
+
+  function spawnPlants(delta) {
+    plantSpawnCarry += settings.plantSpawn * delta;
+    while (plantSpawnCarry >= 1) {
+      spawnPlant();
+      plantSpawnCarry -= 1;
+    }
+  }
+
+  function update(delta) {
+    readSettings();
+    spawnPlants(delta);
+    organisms.plants.forEach((plant) => {
+      plant.age += delta;
+    });
+    organisms.herbivores.forEach((animal) => updateAnimal(animal, "herbivore", delta));
+    organisms.predators.forEach((animal) => updateAnimal(animal, "predator", delta));
+    removeStarved("herbivore");
+    removeStarved("predator");
+    reproduce("herbivore");
+    reproduce("predator");
+    updateCounts();
+  }
+
+  function updateCounts() {
+    plantCount.textContent = organisms.plants.length;
+    herbivoreCount.textContent = organisms.herbivores.length;
+    predatorCount.textContent = organisms.predators.length;
+  }
+
+  function drawBackground() {
+    context.fillStyle = "#f3f8f2";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = "rgba(36, 50, 74, 0.055)";
+    context.lineWidth = 1;
+    for (let x = 0; x <= canvas.width; x += 48) {
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x, canvas.height);
+      context.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += 48) {
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(canvas.width, y);
+      context.stroke();
+    }
+  }
+
+  function drawDot(item, color, radius) {
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(item.x, item.y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  function draw() {
+    drawBackground();
+    organisms.plants.forEach((plant) => drawDot(plant, colors.plant, plant.radius));
+    organisms.herbivores.forEach((animal) => drawDot(animal, colors.herbivore, animal.radius));
+    organisms.predators.forEach((animal) => drawDot(animal, colors.predator, animal.radius));
+    updateCounts();
+  }
+
+  function updateActionButton() {
+    setShortcutLabel(actionButton, running ? "Pause" : "Run", "Space", running ? "Pause simulation" : "Run simulation");
+  }
+
+  function toggleRunning() {
+    running = !running;
+    updateActionButton();
+    if (running) {
+      startLoop();
+    }
+  }
+
+  function startLoop() {
+    if (!routeActive || animationFrame) {
+      return;
+    }
+    lastTime = performance.now();
+    animationFrame = requestAnimationFrame(loop);
+  }
+
+  function stopLoop() {
+    if (animationFrame) {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = 0;
+    }
+  }
+
+  function loop(time) {
+    animationFrame = 0;
+    const delta = Math.min(0.05, (time - lastTime) / 1000 || 0);
+    lastTime = time;
+    if (running) {
+      update(delta);
+    }
+    draw();
+    if (routeActive && running) {
+      animationFrame = requestAnimationFrame(loop);
+    }
+  }
+
+  controls.forEach(({ input }) => {
+    input.addEventListener("input", readSettings);
+  });
+  actionButton.addEventListener("click", toggleRunning);
+  reseedButton.addEventListener("click", seed);
+  document.addEventListener("keydown", (event) => {
+    if (!routes.get("ecosystem").classList.contains("active-view")) {
+      return;
+    }
+    const target = event.target;
+    const isTextInput = target instanceof HTMLElement
+      && (target.matches("input, textarea, select") || target.isContentEditable);
+    const isNativeButtonKey = target instanceof HTMLElement
+      && target.closest("button")
+      && (event.key === " " || event.key === "Enter");
+    if (isTextInput || isNativeButtonKey) {
+      return;
+    }
+
+    if (event.key === " " || event.code === "Space") {
+      event.preventDefault();
+      toggleRunning();
+    }
+    if (event.key.toLocaleLowerCase() === "r" && !event.repeat) {
+      event.preventDefault();
+      seed();
+    }
+  });
+
+  readSettings();
+  setShortcutLabel(reseedButton, "Reseed", "R", "Reseed ecosystem");
+  seed();
+  updateActionButton();
+
+  return {
+    draw,
+    setRouteActive(isActive) {
+      routeActive = isActive;
+      if (routeActive) {
+        draw();
+        if (running) {
+          startLoop();
+        }
+      } else {
+        stopLoop();
+      }
+    }
+  };
+})();
 
 const starHopper = (() => {
   const canvas = document.querySelector("#starhopper-canvas");

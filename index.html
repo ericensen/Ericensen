@@ -6,7 +6,7 @@
     <title>Ericensen Home</title>
     <meta
       name="description"
-      content="A personal homepage and app hub for Ericensen, with NameHat, Star Hopper, and a simple block stacking game."
+      content="A personal homepage and app hub for Ericensen, with NameHat, Ecosystem Lab, Star Hopper, and a simple block stacking game."
     >
     <meta name="theme-color" content="#f7f5ef">
     <meta property="og:title" content="Ericensen Home">
@@ -27,6 +27,7 @@
         <nav class="top-nav" aria-label="Primary navigation">
           <a href="#home" data-nav="home">Home</a>
           <a href="#namehat" data-nav="namehat">NameHat</a>
+          <a href="#ecosystem" data-nav="ecosystem">Ecosystem</a>
           <a href="#starhopper" data-nav="starhopper">Star Hopper</a>
           <a href="#blocks" data-nav="blocks">Blocks</a>
         </nav>
@@ -52,7 +53,8 @@
               <div class="hub-chip chip-one">NameHat</div>
               <div class="hub-chip chip-two">Blocks</div>
               <div class="hub-chip chip-three">Star Hopper</div>
-              <div class="hub-chip chip-four">Projects</div>
+              <div class="hub-chip chip-four">Ecosystem</div>
+              <div class="hub-chip chip-five">Projects</div>
             </div>
           </div>
 
@@ -221,6 +223,101 @@
                 <button id="hide-name-button" class="button primary" type="button">Close Name</button>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="ecosystem-view" class="view ecosystem-view" aria-labelledby="ecosystem-title">
+          <div class="tool-header">
+            <div>
+              <p class="eyebrow">Living simulation</p>
+              <h1 id="ecosystem-title">Ecosystem Lab</h1>
+              <p class="tool-subtitle">Tune a small food web and watch population pressure play out.</p>
+            </div>
+            <div class="tool-stats" aria-label="Ecosystem totals">
+              <span><strong id="eco-plant-count">0</strong>Plants</span>
+              <span><strong id="eco-herbivore-count">0</strong>Herbivores</span>
+              <span><strong id="eco-predator-count">0</strong>Predators</span>
+            </div>
+          </div>
+
+          <div class="ecosystem-layout">
+            <section class="ecosystem-stage" aria-label="Ecosystem simulation">
+              <canvas id="ecosystem-canvas" width="960" height="600" tabindex="0"></canvas>
+              <div class="ecosystem-legend" aria-label="Organism colors">
+                <span><i class="eco-dot plant-dot"></i>Plants</span>
+                <span><i class="eco-dot herbivore-dot"></i>Herbivores</span>
+                <span><i class="eco-dot predator-dot"></i>Predators</span>
+              </div>
+            </section>
+
+            <aside class="ecosystem-controls game-side" aria-label="Ecosystem controls">
+              <div class="ecosystem-buttons">
+                <button id="ecosystem-action-button" class="button primary" type="button">
+                  <span class="button-label">Pause</span>
+                  <kbd>Space</kbd>
+                </button>
+                <button id="ecosystem-reseed-button" class="button quiet" type="button">
+                  <span class="button-label">Reseed</span>
+                  <kbd>R</kbd>
+                </button>
+              </div>
+
+              <div class="eco-control-group">
+                <p class="eyebrow">Starting counts</p>
+                <label class="range-field" for="eco-start-plants">
+                  <span>Plants <output id="eco-start-plants-value">140</output></span>
+                  <input id="eco-start-plants" type="range" min="0" max="400" step="5" value="140">
+                </label>
+                <label class="range-field" for="eco-start-herbivores">
+                  <span>Herbivores <output id="eco-start-herbivores-value">28</output></span>
+                  <input id="eco-start-herbivores" type="range" min="0" max="120" step="1" value="28">
+                </label>
+                <label class="range-field" for="eco-start-predators">
+                  <span>Predators <output id="eco-start-predators-value">6</output></span>
+                  <input id="eco-start-predators" type="range" min="0" max="60" step="1" value="6">
+                </label>
+              </div>
+
+              <div class="eco-control-group">
+                <p class="eyebrow">Plants</p>
+                <label class="range-field" for="eco-plant-spawn">
+                  <span>Random spawn / sec <output id="eco-plant-spawn-value">1.2</output></span>
+                  <input id="eco-plant-spawn" type="range" min="0" max="8" step="0.2" value="1.2">
+                </label>
+              </div>
+
+              <div class="eco-control-group">
+                <p class="eyebrow">Herbivores</p>
+                <label class="range-field" for="eco-herbivore-speed">
+                  <span>Speed <output id="eco-herbivore-speed-value">56</output></span>
+                  <input id="eco-herbivore-speed" type="range" min="10" max="160" step="1" value="56">
+                </label>
+                <label class="range-field" for="eco-herbivore-feed">
+                  <span>Feed need (sec) <output id="eco-herbivore-feed-value">18</output></span>
+                  <input id="eco-herbivore-feed" type="range" min="4" max="60" step="1" value="18">
+                </label>
+                <label class="range-field" for="eco-herbivore-repro">
+                  <span>Reproduce cooldown (sec) <output id="eco-herbivore-repro-value">9</output></span>
+                  <input id="eco-herbivore-repro" type="range" min="2" max="45" step="1" value="9">
+                </label>
+              </div>
+
+              <div class="eco-control-group">
+                <p class="eyebrow">Predators</p>
+                <label class="range-field" for="eco-predator-speed">
+                  <span>Speed <output id="eco-predator-speed-value">74</output></span>
+                  <input id="eco-predator-speed" type="range" min="10" max="180" step="1" value="74">
+                </label>
+                <label class="range-field" for="eco-predator-feed">
+                  <span>Feed need (sec) <output id="eco-predator-feed-value">24</output></span>
+                  <input id="eco-predator-feed" type="range" min="4" max="70" step="1" value="24">
+                </label>
+                <label class="range-field" for="eco-predator-repro">
+                  <span>Reproduce cooldown (sec) <output id="eco-predator-repro-value">14</output></span>
+                  <input id="eco-predator-repro" type="range" min="2" max="60" step="1" value="14">
+                </label>
+              </div>
+            </aside>
           </div>
         </section>
 

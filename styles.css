@@ -353,6 +353,11 @@ button kbd {
   bottom: 12%;
 }
 
+.chip-five {
+  bottom: 8%;
+  left: 12%;
+}
+
 .section-block {
   padding: 48px 0;
 }
@@ -930,6 +935,127 @@ a:focus-visible {
   text-align: center;
 }
 
+.ecosystem-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(290px, 360px);
+  gap: 16px;
+  align-items: start;
+}
+
+.ecosystem-stage {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid rgba(23, 32, 47, 0.14);
+  border-radius: var(--radius);
+  background: #f3f8f2;
+  box-shadow: var(--shadow);
+}
+
+#ecosystem-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  background: #f3f8f2;
+}
+
+.ecosystem-legend {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 7px;
+  border: 1px solid rgba(23, 32, 47, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.ecosystem-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.eco-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.plant-dot {
+  background: #52a85f;
+}
+
+.herbivore-dot {
+  background: #2f7ed8;
+}
+
+.predator-dot {
+  background: #d7564a;
+}
+
+.ecosystem-controls {
+  align-content: start;
+}
+
+.ecosystem-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.eco-control-group {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+  border-top: 1px solid var(--line);
+}
+
+.ecosystem-buttons + .eco-control-group {
+  border-top: 0;
+}
+
+.eco-control-group .eyebrow {
+  margin-bottom: 0;
+}
+
+.range-field {
+  display: grid;
+  gap: 6px;
+}
+
+.range-field span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.range-field output {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.range-field input[type="range"] {
+  width: 100%;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--olive);
+  background: transparent;
+}
+
 .starhopper-layout {
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(260px, 330px);
@@ -1294,6 +1420,7 @@ a:focus-visible {
   .hero-grid,
   .split-band,
   .game-layout,
+  .ecosystem-layout,
   .starhopper-layout,
   .namehat-layout {
     grid-template-columns: 1fr;
@@ -1521,6 +1648,10 @@ a:focus-visible {
   }
 
   .starhopper-side {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystem-buttons {
     grid-template-columns: 1fr;
   }
 
