@@ -566,6 +566,7 @@ const starHopper = (() => {
   const overlaySubtitle = document.querySelector("#starhopper-overlay-subtitle");
   const actionButton = document.querySelector("#starhopper-action-button");
   const restartButton = document.querySelector("#starhopper-restart-button");
+  const pogoButton = document.querySelector('[data-star-control="pogo"]');
   const scoreValue = document.querySelector("#starhopper-score-value");
   const crystalValue = document.querySelector("#starhopper-crystal-value");
   const healthValue = document.querySelector("#starhopper-health-value");
@@ -578,6 +579,7 @@ const starHopper = (() => {
   const gravity = 1900;
   const runSpeed = 260;
   const jumpVelocity = -660;
+  const pogoJumpVelocity = -900;
   const zapSpeed = 680;
   const playerWidth = 24;
   const playerHeight = 44;
@@ -597,6 +599,7 @@ const starHopper = (() => {
       health: 3,
       crystalsCollected: 0,
       hasKey: false,
+      pogoActive: false,
       cameraX: 0,
       time: 0,
       pulses: [],
@@ -775,6 +778,9 @@ const starHopper = (() => {
     if (game.mode === "over") {
       return "Down";
     }
+    if (game.pogoActive) {
+      return "Pogo";
+    }
     if (game.hasKey) {
       return "Gate";
     }
@@ -791,11 +797,16 @@ const starHopper = (() => {
     progressBar.style.width = `${progress}%`;
   }
 
+  function updatePogoButton() {
+    pogoButton?.setAttribute("aria-pressed", String(game.pogoActive));
+  }
+
   function start() {
     game = createGameState();
     game.mode = "playing";
     controls.left = false;
     controls.right = false;
+    updatePogoButton();
     hideOverlay();
     updateHud();
     canvas.focus({ preventScroll: true });
@@ -849,11 +860,27 @@ const starHopper = (() => {
       return;
     }
     if (game.player.grounded || game.player.coyote > 0) {
-      game.player.vy = jumpVelocity;
+      const velocity = game.pogoActive ? pogoJumpVelocity : jumpVelocity;
+      game.player.vy = velocity;
       game.player.grounded = false;
       game.player.coyote = 0;
-      sparkle(game.player.x + 12, game.player.y + game.player.height, "#f2d16b", 5);
+      sparkle(
+        game.player.x + 12,
+        game.player.y + game.player.height,
+        game.pogoActive ? "#b48dff" : "#f2d16b",
+        game.pogoActive ? 9 : 5
+      );
     }
+  }
+
+  function togglePogo() {
+    if (game.mode !== "playing") {
+      return;
+    }
+    game.pogoActive = !game.pogoActive;
+    updatePogoButton();
+    updateHud();
+    sparkle(game.player.x + 12, game.player.y + game.player.height, "#b48dff", 7);
   }
 
   function zap() {
@@ -1280,6 +1307,15 @@ const starHopper = (() => {
     context.fillStyle = "#fb6f69";
     context.fillRect(x + 2, y + 36, 8, 6);
     context.fillRect(x + 14, y + 36, 8, 6);
+    if (game.pogoActive) {
+      context.fillStyle = "#f3e8ff";
+      context.fillRect(x + 11, y + 27, 3, 17);
+      context.fillStyle = "#b48dff";
+      context.fillRect(x + 7, y + 36, 11, 3);
+      context.fillRect(x + 8, y + 41, 9, 3);
+      context.fillStyle = "#17202f";
+      context.fillRect(x + 5, y + 43, 15, 4);
+    }
   }
 
   function drawWorld() {
@@ -1345,6 +1381,10 @@ const starHopper = (() => {
       event.preventDefault();
       jump();
     }
+    if (isDown && key === "p" && !event.repeat) {
+      event.preventDefault();
+      togglePogo();
+    }
     if (isDown && (key === "z" || key === "x" || key === "k")) {
       event.preventDefault();
       zap();
@@ -1359,21 +1399,38 @@ const starHopper = (() => {
     }
   }
 
+  function activateStarControl(control) {
+    if (control === "left" || control === "right") {
+      controls[control] = true;
+      window.setTimeout(() => {
+        controls[control] = false;
+      }, 120);
+    }
+    if (control === "jump") {
+      jump();
+    }
+    if (control === "pogo") {
+      togglePogo();
+    }
+    if (control === "zap") {
+      zap();
+    }
+  }
+
   function bindTouchControls() {
     document.querySelectorAll("[data-star-control]").forEach((button) => {
       const control = button.dataset.starControl;
+      let ignoreClickUntil = 0;
+
       button.addEventListener("pointerdown", (event) => {
         event.preventDefault();
         button.setPointerCapture?.(event.pointerId);
+        ignoreClickUntil = performance.now() + 450;
         if (control === "left" || control === "right") {
           controls[control] = true;
+          return;
         }
-        if (control === "jump") {
-          jump();
-        }
-        if (control === "zap") {
-          zap();
-        }
+        activateStarControl(control);
       });
       const release = () => {
         if (control === "left" || control === "right") {
@@ -1384,7 +1441,13 @@ const starHopper = (() => {
       button.addEventListener("pointercancel", release);
       button.addEventListener("pointerleave", release);
       button.addEventListener("lostpointercapture", release);
-      button.addEventListener("click", (event) => event.preventDefault());
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        if (performance.now() < ignoreClickUntil) {
+          return;
+        }
+        activateStarControl(control);
+      });
     });
   }
 
@@ -1394,6 +1457,7 @@ const starHopper = (() => {
   document.addEventListener("keyup", (event) => handleKeyboard(event, false));
   bindTouchControls();
   setShortcutLabel(restartButton, "Restart", "R", "Restart Star Hopper");
+  updatePogoButton();
   showOverlay("Star Hopper", "Level 1: Crater Run", "Start");
   updateHud();
   draw();

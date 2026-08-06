@@ -1073,6 +1073,15 @@ a:focus-visible {
   background: var(--sky);
 }
 
+.starhopper-mobile-controls [data-star-control="pogo"] {
+  background: var(--violet);
+}
+
+.starhopper-mobile-controls [data-star-control="pogo"][aria-pressed="true"] {
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.34);
+  filter: saturate(1.22);
+}
+
 .starhopper-mobile-controls [data-star-control="zap"] {
   background: var(--coral);
 }
