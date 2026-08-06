@@ -247,8 +247,29 @@ h2 {
   min-height: 44px;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   padding: 12px 16px;
   border: 1px solid transparent;
+}
+
+.button-label {
+  line-height: 1;
+}
+
+button kbd {
+  display: inline-grid;
+  min-width: 22px;
+  min-height: 20px;
+  place-items: center;
+  padding: 2px 6px;
+  border: 1px solid rgba(23, 32, 47, 0.12);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+  font: inherit;
+  font-size: 0.72em;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .button.primary {
@@ -1018,8 +1039,11 @@ a:focus-visible {
 }
 
 .starhopper-mobile-controls button {
+  display: grid;
   width: 100%;
   min-height: 62px;
+  align-content: center;
+  gap: 4px;
   border: 0;
   border-radius: var(--radius);
   background: var(--ink);
@@ -1028,6 +1052,21 @@ a:focus-visible {
   font-weight: 900;
   touch-action: none;
   user-select: none;
+}
+
+.starhopper-mobile-controls button span,
+.touch-controls button span,
+.fullscreen-controls button span {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.starhopper-mobile-controls button kbd,
+.touch-controls button kbd {
+  justify-self: center;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.88rem;
 }
 
 .starhopper-mobile-controls [data-star-control="jump"] {
@@ -1077,11 +1116,14 @@ a:focus-visible {
 }
 
 .touch-controls button {
+  display: grid;
   width: 100%;
-  height: 58px;
+  min-height: 62px;
+  align-content: center;
+  gap: 4px;
   background: var(--ink);
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 0.95rem;
   touch-action: none;
   user-select: none;
 }
@@ -1105,7 +1147,7 @@ a:focus-visible {
 #hard-drop-piece {
   grid-area: hard;
   background: var(--coral);
-  font-size: 1.7rem;
+  font-size: 0.95rem;
 }
 
 .fullscreen-game-hud,
@@ -1120,16 +1162,25 @@ a:focus-visible {
   z-index: 4;
   display: grid;
   width: 38px;
-  height: 38px;
+  height: 42px;
+  min-width: 58px;
+  align-content: center;
+  gap: 2px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--radius);
   background: rgba(17, 24, 39, 0.72);
   color: #fff;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.7rem;
   font-weight: 900;
   touch-action: none;
+}
+
+.fullscreen-toggle-button kbd {
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.78rem;
 }
 
 .leaderboard-panel {
@@ -1347,7 +1398,7 @@ a:focus-visible {
   #blocks-view .touch-controls button {
     min-width: 0;
     height: clamp(48px, 8.5svh, 64px);
-    font-size: 1.35rem;
+    font-size: 0.86rem;
   }
 
   body.blocks-playing .app-shell {
@@ -1629,7 +1680,9 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
   display: grid;
   width: 100%;
   min-width: 0;
-  height: 54px;
+  height: 58px;
+  align-content: center;
+  gap: 4px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius);
@@ -1640,8 +1693,16 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
 .fullscreen-controls button {
   cursor: pointer;
   font-weight: 900;
+  font-size: 0.78rem;
+  line-height: 1;
   touch-action: none;
   user-select: none;
+}
+
+.fullscreen-controls button kbd {
+  justify-self: center;
+  background: rgba(23, 32, 47, 0.1);
+  font-size: 0.72rem;
 }
 
 #fullscreen-action-button {
@@ -1652,11 +1713,6 @@ body.blocks-fullscreen-active #blocks-view .fullscreen-controls {
 #fullscreen-hard-drop-piece {
   background: var(--coral);
   color: #fff;
-  font-size: 1.45rem;
-}
-
-#fullscreen-drop-piece {
-  font-size: 1.35rem;
 }
 
 #fullscreen-next-board {

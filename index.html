@@ -244,7 +244,10 @@
               <div id="starhopper-overlay" class="game-overlay starhopper-overlay">
                 <strong id="starhopper-overlay-title">Star Hopper</strong>
                 <span id="starhopper-overlay-subtitle">Level 1: Crater Run</span>
-                <button id="starhopper-action-button" class="button primary" type="button">Start</button>
+                <button id="starhopper-action-button" class="button primary" type="button">
+                  <span class="button-label">Start</span>
+                  <kbd>Enter</kbd>
+                </button>
               </div>
             </section>
 
@@ -261,13 +264,28 @@
                 </div>
               </div>
               <div class="starhopper-buttons">
-                <button id="starhopper-restart-button" class="button quiet" type="button">Restart</button>
+                <button id="starhopper-restart-button" class="button quiet" type="button">
+                  <span class="button-label">Restart</span>
+                  <kbd>R</kbd>
+                </button>
               </div>
               <div class="starhopper-mobile-controls" aria-label="Touch controls">
-                <button type="button" data-star-control="left" aria-label="Move left">Left</button>
-                <button type="button" data-star-control="right" aria-label="Move right">Right</button>
-                <button type="button" data-star-control="jump" aria-label="Jump">Jump</button>
-                <button type="button" data-star-control="zap" aria-label="Zap">Zap</button>
+                <button type="button" data-star-control="left" aria-label="Move left, keyboard shortcut Left Arrow or A">
+                  <span>Left</span>
+                  <kbd>← / A</kbd>
+                </button>
+                <button type="button" data-star-control="right" aria-label="Move right, keyboard shortcut Right Arrow or D">
+                  <span>Right</span>
+                  <kbd>→ / D</kbd>
+                </button>
+                <button type="button" data-star-control="jump" aria-label="Jump, keyboard shortcut Up Arrow, W, or Space">
+                  <span>Jump</span>
+                  <kbd>↑ / W / Space</kbd>
+                </button>
+                <button type="button" data-star-control="zap" aria-label="Zap, keyboard shortcut Z, X, or K">
+                  <span>Zap</span>
+                  <kbd>Z / X / K</kbd>
+                </button>
               </div>
             </aside>
           </div>
@@ -301,7 +319,8 @@
                 aria-label="Enter fullscreen"
                 title="Toggle fullscreen"
               >
-                ⛶
+                <span class="button-label">Full</span>
+                <kbd>F</kbd>
               </button>
               <canvas id="tetris-board" width="300" height="600" tabindex="0"></canvas>
               <div id="game-overlay" class="game-overlay">
@@ -323,12 +342,21 @@
                 </div>
               </div>
               <div class="fullscreen-controls" aria-label="Fullscreen controls">
-                <button id="fullscreen-action-button" type="button" aria-label="Start game">Start</button>
-                <button id="fullscreen-drop-piece" type="button" aria-label="Move down" title="Move down">↓</button>
+                <button id="fullscreen-action-button" type="button" aria-label="Start game, keyboard shortcut Enter">
+                  <span class="button-label">Start</span>
+                  <kbd>Enter</kbd>
+                </button>
+                <button id="fullscreen-drop-piece" type="button" aria-label="Move down, keyboard shortcut Down Arrow" title="Move down">
+                  <span>Down</span>
+                  <kbd>↓</kbd>
+                </button>
                 <div class="fullscreen-next-tile" aria-label="Next block">
                   <canvas id="fullscreen-next-board" width="80" height="80"></canvas>
                 </div>
-                <button id="fullscreen-hard-drop-piece" type="button" aria-label="Drop to bottom" title="Drop to bottom">⇊</button>
+                <button id="fullscreen-hard-drop-piece" type="button" aria-label="Drop to bottom, keyboard shortcut Space" title="Drop to bottom">
+                  <span>Drop</span>
+                  <kbd>Space</kbd>
+                </button>
               </div>
             </section>
 
@@ -338,14 +366,32 @@
                 <canvas id="next-board" width="120" height="120"></canvas>
               </div>
               <div class="game-buttons">
-                <button id="game-action-button" class="button primary" type="button">Start</button>
+                <button id="game-action-button" class="button primary" type="button">
+                  <span class="button-label">Start</span>
+                  <kbd>Enter</kbd>
+                </button>
               </div>
               <div class="touch-controls" aria-label="Touch controls">
-                <button id="rotate-piece" type="button" aria-label="Rotate" title="Rotate">↻</button>
-                <button id="move-left" type="button" aria-label="Move left" title="Move left">←</button>
-                <button id="move-right" type="button" aria-label="Move right" title="Move right">→</button>
-                <button id="drop-piece" type="button" aria-label="Move down" title="Move down">↓</button>
-                <button id="hard-drop-piece" type="button" aria-label="Drop to bottom" title="Drop to bottom">⇊</button>
+                <button id="rotate-piece" type="button" aria-label="Rotate, keyboard shortcut Up Arrow" title="Rotate">
+                  <span>Rotate</span>
+                  <kbd>↑</kbd>
+                </button>
+                <button id="move-left" type="button" aria-label="Move left, keyboard shortcut Left Arrow" title="Move left">
+                  <span>Left</span>
+                  <kbd>←</kbd>
+                </button>
+                <button id="move-right" type="button" aria-label="Move right, keyboard shortcut Right Arrow" title="Move right">
+                  <span>Right</span>
+                  <kbd>→</kbd>
+                </button>
+                <button id="drop-piece" type="button" aria-label="Move down, keyboard shortcut Down Arrow" title="Move down">
+                  <span>Down</span>
+                  <kbd>↓</kbd>
+                </button>
+                <button id="hard-drop-piece" type="button" aria-label="Drop to bottom, keyboard shortcut Space" title="Drop to bottom">
+                  <span>Drop</span>
+                  <kbd>Space</kbd>
+                </button>
               </div>
               <div class="leaderboard-panel" aria-labelledby="leaderboard-title">
                 <div class="leaderboard-heading">

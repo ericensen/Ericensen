@@ -497,6 +497,19 @@ function escapeHtml(value) {
   return span.innerHTML;
 }
 
+function setShortcutLabel(button, label, shortcut, ariaLabel = label) {
+  if (!button) {
+    return;
+  }
+  const labelNode = document.createElement("span");
+  labelNode.className = "button-label";
+  labelNode.textContent = label;
+  const shortcutNode = document.createElement("kbd");
+  shortcutNode.textContent = shortcut;
+  button.replaceChildren(labelNode, shortcutNode);
+  button.setAttribute("aria-label", `${ariaLabel}, keyboard shortcut ${shortcut}`);
+}
+
 function setupHubCanvas() {
   const canvas = document.querySelector("#hub-canvas");
   const context = canvas.getContext("2d");
@@ -732,7 +745,7 @@ const starHopper = (() => {
   function updateOverlay(title, subtitle, buttonLabel) {
     overlayTitle.textContent = title;
     overlaySubtitle.textContent = subtitle;
-    actionButton.textContent = buttonLabel;
+    setShortcutLabel(actionButton, buttonLabel, "Enter", `${buttonLabel} Star Hopper`);
   }
 
   function hideOverlay() {
@@ -1312,6 +1325,12 @@ const starHopper = (() => {
     if (isTextInput) {
       return;
     }
+    const isNativeButtonKey = target instanceof HTMLElement
+      && target.closest("button")
+      && (event.key === " " || event.key === "Enter");
+    if (isNativeButtonKey) {
+      return;
+    }
 
     const key = event.key.toLowerCase();
     if (event.key === "ArrowLeft" || key === "a") {
@@ -1331,6 +1350,10 @@ const starHopper = (() => {
       zap();
     }
     if (isDown && event.key === "Enter" && game.mode !== "playing") {
+      event.preventDefault();
+      start();
+    }
+    if (isDown && key === "r" && !event.repeat) {
       event.preventDefault();
       start();
     }
@@ -1370,6 +1393,7 @@ const starHopper = (() => {
   document.addEventListener("keydown", (event) => handleKeyboard(event, true));
   document.addEventListener("keyup", (event) => handleKeyboard(event, false));
   bindTouchControls();
+  setShortcutLabel(restartButton, "Restart", "R", "Restart Star Hopper");
   showOverlay("Star Hopper", "Level 1: Crater Run", "Start");
   updateHud();
   draw();
@@ -1487,20 +1511,18 @@ const tetris = (() => {
   function updateActionButtons() {
     const label = !running || gameOver ? "Start" : paused ? "Resume" : "Pause";
     const ariaLabel = label === "Start" ? "Start game" : `${label} game`;
+    const shortcut = label === "Start" ? "Enter" : "P / Enter";
     actionButtons.forEach((button) => {
-      button.textContent = label;
-      button.setAttribute("aria-label", ariaLabel);
+      setShortcutLabel(button, label, shortcut, ariaLabel);
     });
   }
 
   function updateFullscreenToggle() {
     const fullscreenActive = document.fullscreenElement === gameView;
-    fullscreenToggleButton.textContent = fullscreenActive ? "×" : "⛶";
-    fullscreenToggleButton.setAttribute(
-      "aria-label",
-      fullscreenActive ? "Exit fullscreen" : "Enter fullscreen"
-    );
-    fullscreenToggleButton.title = fullscreenActive ? "Exit fullscreen" : "Enter fullscreen";
+    const label = fullscreenActive ? "Exit" : "Full";
+    const ariaLabel = fullscreenActive ? "Exit fullscreen" : "Enter fullscreen";
+    setShortcutLabel(fullscreenToggleButton, label, "F", ariaLabel);
+    fullscreenToggleButton.title = `${ariaLabel} (F)`;
   }
 
   function loadLeaderboard() {
@@ -1989,6 +2011,23 @@ const tetris = (() => {
     if (isTextInput) {
       return;
     }
+    const isNativeButtonKey = target instanceof HTMLElement
+      && target.closest("button")
+      && (event.key === " " || event.key === "Enter");
+    if (isNativeButtonKey) {
+      return;
+    }
+
+    const key = event.key.toLocaleLowerCase();
+
+    if (key === "f") {
+      event.preventDefault();
+      toggleFullscreen();
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleGameAction();
+    }
 
     if (event.key === "ArrowLeft") {
       event.preventDefault();
@@ -2006,7 +2045,14 @@ const tetris = (() => {
       event.preventDefault();
       turn();
     }
-    if (event.key.toLocaleLowerCase() === "p") togglePause();
+    if (event.key === " " || event.code === "Space") {
+      event.preventDefault();
+      hardDrop();
+    }
+    if (key === "p") {
+      event.preventDefault();
+      togglePause();
+    }
   });
 
   drawNext();
