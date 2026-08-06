@@ -579,7 +579,8 @@ const starHopper = (() => {
   const gravity = 1900;
   const runSpeed = 260;
   const jumpVelocity = -660;
-  const pogoJumpVelocity = -900;
+  const pogoBounceVelocities = [-540, -720, -900];
+  const pogoSettleVelocities = [-420, -260];
   const zapSpeed = 680;
   const playerWidth = 24;
   const playerHeight = 44;
@@ -600,6 +601,9 @@ const starHopper = (() => {
       crystalsCollected: 0,
       hasKey: false,
       pogoActive: false,
+      pogoBounceCount: 0,
+      pogoSettleBounces: 0,
+      pogoPulse: 0,
       cameraX: 0,
       time: 0,
       pulses: [],
@@ -779,7 +783,7 @@ const starHopper = (() => {
       return "Down";
     }
     if (game.pogoActive) {
-      return "Pogo";
+      return `Pogo ${Math.min(Math.max(game.pogoBounceCount, 1), 3)}`;
     }
     if (game.hasKey) {
       return "Gate";
@@ -859,18 +863,50 @@ const starHopper = (() => {
     if (game.mode !== "playing") {
       return;
     }
+    if (game.pogoActive) {
+      pogoSpring();
+      return;
+    }
     if (game.player.grounded || game.player.coyote > 0) {
-      const velocity = game.pogoActive ? pogoJumpVelocity : jumpVelocity;
-      game.player.vy = velocity;
+      game.player.vy = jumpVelocity;
       game.player.grounded = false;
       game.player.coyote = 0;
       sparkle(
         game.player.x + 12,
         game.player.y + game.player.height,
-        game.pogoActive ? "#b48dff" : "#f2d16b",
-        game.pogoActive ? 9 : 5
+        "#f2d16b",
+        5
       );
     }
+  }
+
+  function pogoSpring({ settling = false } = {}) {
+    if (game.mode !== "playing" || !(game.player.grounded || game.player.coyote > 0)) {
+      return;
+    }
+    const bounceIndex = Math.min(game.pogoBounceCount, pogoBounceVelocities.length - 1);
+    const settleIndex = Math.max(0, pogoSettleVelocities.length - game.pogoSettleBounces);
+    const velocity = settling
+      ? pogoSettleVelocities[Math.min(settleIndex, pogoSettleVelocities.length - 1)]
+      : pogoBounceVelocities[bounceIndex];
+
+    game.player.vy = velocity;
+    game.player.grounded = false;
+    game.player.coyote = 0;
+    game.pogoPulse = 1;
+
+    if (settling) {
+      game.pogoSettleBounces = Math.max(0, game.pogoSettleBounces - 1);
+    } else {
+      game.pogoBounceCount += 1;
+    }
+
+    sparkle(
+      game.player.x + 12,
+      game.player.y + game.player.height,
+      settling ? "#c8b6ff" : "#b48dff",
+      settling ? 5 : 8 + bounceIndex * 2
+    );
   }
 
   function togglePogo() {
@@ -878,9 +914,16 @@ const starHopper = (() => {
       return;
     }
     game.pogoActive = !game.pogoActive;
+    if (game.pogoActive) {
+      game.pogoSettleBounces = 0;
+      pogoSpring();
+    } else {
+      game.pogoSettleBounces = Math.min(2, game.pogoBounceCount);
+      game.pogoBounceCount = 0;
+    }
     updatePogoButton();
     updateHud();
-    sparkle(game.player.x + 12, game.player.y + game.player.height, "#b48dff", 7);
+    sparkle(game.player.x + 12, game.player.y + game.player.height, "#b48dff", 6);
   }
 
   function zap() {
@@ -954,16 +997,26 @@ const starHopper = (() => {
     player.vy += gravity * delta;
     player.zapCooldown = Math.max(0, player.zapCooldown - delta);
     player.invulnerable = Math.max(0, player.invulnerable - delta);
+    game.pogoPulse = Math.max(0, game.pogoPulse - delta * 4.8);
 
     player.x += player.vx * delta;
     resolveHorizontal(player);
     player.x = clamp(player.x, 0, game.width - player.width);
 
+    const wasGrounded = player.grounded;
+    const wasFalling = player.vy >= 0;
     player.grounded = false;
     player.y += player.vy * delta;
     resolveVertical(player);
+    const landed = player.grounded && (!wasGrounded || wasFalling);
     if (!player.grounded) {
       player.coyote = Math.max(0, player.coyote - delta);
+    } else if (landed && game.pogoActive) {
+      pogoSpring();
+    } else if (landed && game.pogoSettleBounces > 0) {
+      pogoSpring({ settling: true });
+    } else if (landed) {
+      game.pogoBounceCount = 0;
     }
 
     if (player.y > game.height + 120) {
@@ -1307,14 +1360,17 @@ const starHopper = (() => {
     context.fillStyle = "#fb6f69";
     context.fillRect(x + 2, y + 36, 8, 6);
     context.fillRect(x + 14, y + 36, 8, 6);
-    if (game.pogoActive) {
+    const pogoVisible = game.pogoActive || game.pogoSettleBounces > 0 || game.pogoPulse > 0;
+    if (pogoVisible) {
+      const springLength = 14 + Math.round((1 - game.pogoPulse) * 9);
+      const footY = y + 33 + springLength;
       context.fillStyle = "#f3e8ff";
-      context.fillRect(x + 11, y + 27, 3, 17);
+      context.fillRect(x + 11, y + 27, 3, springLength);
       context.fillStyle = "#b48dff";
-      context.fillRect(x + 7, y + 36, 11, 3);
-      context.fillRect(x + 8, y + 41, 9, 3);
+      context.fillRect(x + 7, y + 34, 11, 3);
+      context.fillRect(x + 8, footY - 4, 9, 3);
       context.fillStyle = "#17202f";
-      context.fillRect(x + 5, y + 43, 15, 4);
+      context.fillRect(x + 5, footY, 15, 4);
     }
   }
 
@@ -1381,7 +1437,7 @@ const starHopper = (() => {
       event.preventDefault();
       jump();
     }
-    if (isDown && key === "p" && !event.repeat) {
+    if (isDown && key === "c" && !event.repeat) {
       event.preventDefault();
       togglePogo();
     }
