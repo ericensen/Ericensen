@@ -27,7 +27,7 @@ const appRegistry = [
     id: "ecosystem",
     title: "Eco Lab",
     kicker: "Simulation",
-    description: "Tune Eco populations with plants, animals, energy, mating, movement, and reproduction.",
+    description: "Tune Eco populations with plant growth, cover, energy, mating, movement, and reproduction.",
     accent: "olive"
   },
   {
@@ -833,6 +833,20 @@ const ecosystemLab = (() => {
       && recentlyFed(animal, type);
   }
 
+  function predatorPlantSlowdown(animal) {
+    let coverHits = 0;
+    for (const plant of organisms.plants) {
+      const coverRadius = animal.radius + plant.radius + 8;
+      if (distanceSquared(animal, plant) <= coverRadius ** 2) {
+        coverHits += 1;
+        if (coverHits >= 3) {
+          break;
+        }
+      }
+    }
+    return coverHits === 0 ? 1 : Math.max(0.46, 1 - coverHits * 0.18);
+  }
+
   function wander(animal, delta) {
     animal.wanderTimer -= delta;
     if (animal.wanderTimer <= 0) {
@@ -963,6 +977,12 @@ const ecosystemLab = (() => {
         speedMultiplier = 1.22;
         energyMultiplier = 1.7;
       }
+
+      const coverSlowdown = predatorPlantSlowdown(animal);
+      if (coverSlowdown < 1) {
+        speedMultiplier *= coverSlowdown;
+        energyMultiplier *= 1 + (1 - coverSlowdown) * 0.35;
+      }
     }
 
     if (target) {
@@ -1039,8 +1059,14 @@ const ecosystemLab = (() => {
     list.push(...newborns);
   }
 
+  function plantGrowthRate() {
+    const density = organisms.plants.length / caps.plants;
+    const openSpace = Math.max(0, 1 - density);
+    return settings.plantSpawn * Math.sqrt(openSpace);
+  }
+
   function spawnPlants(delta) {
-    plantSpawnCarry += settings.plantSpawn * delta;
+    plantSpawnCarry += plantGrowthRate() * delta;
     while (plantSpawnCarry >= 1) {
       spawnPlant();
       plantSpawnCarry -= 1;
