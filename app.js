@@ -651,7 +651,9 @@ const ecosystemLab = (() => {
     }
     organisms.plants.push({
       ...point,
-      radius: 3 + Math.random() * 1.4,
+      radius: 2.2 + Math.random() * 0.8,
+      maxRadius: 5.2 + Math.random() * 1.4,
+      growthRate: 0.08 + Math.random() * 0.08,
       age: 0
     });
   }
@@ -661,7 +663,7 @@ const ecosystemLab = (() => {
     return {
       ...point,
       type,
-      radius: type === "predator" ? 5 : 4,
+      radius: type === "predator" ? 5.4 : 4,
       energy: 68 + Math.random() * 24,
       fedAge: Math.random() * feedNeed(type) * 0.45,
       reproCooldown: Math.random() * reproductionCooldown(type),
@@ -1073,13 +1075,16 @@ const ecosystemLab = (() => {
     }
   }
 
+  function updatePlant(plant, delta) {
+    plant.age += delta;
+    plant.radius = Math.min(plant.maxRadius, plant.radius + plant.growthRate * delta);
+  }
+
   function update(delta) {
     readSettings();
     elapsedTime += delta;
     spawnPlants(delta);
-    organisms.plants.forEach((plant) => {
-      plant.age += delta;
-    });
+    organisms.plants.forEach((plant) => updatePlant(plant, delta));
     organisms.herbivores.forEach((animal) => updateAnimal(animal, "herbivore", delta));
     organisms.predators.forEach((animal) => updateAnimal(animal, "predator", delta));
     removeStarved("herbivore");
@@ -1250,7 +1255,7 @@ const ecosystemLab = (() => {
     drawBackground();
     organisms.plants.forEach((plant) => drawDot(plant, colors.plant, plant.radius));
     organisms.herbivores.forEach((animal) => drawDot(animal, colors.herbivore, animal.radius));
-    organisms.predators.forEach((animal) => drawDot(animal, colors.predator, animal.radius));
+    organisms.predators.forEach((animal) => drawDot(animal, colors.predator, animal.radius + 1.1));
     drawPopulationGraph();
     updateCounts();
   }
