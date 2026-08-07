@@ -25,9 +25,9 @@ const appRegistry = [
   },
   {
     id: "ecosystem",
-    title: "Ecosystem Lab",
+    title: "Eco Lab",
     kicker: "Simulation",
-    description: "Tune predators, herbivores, plants, energy, mating, movement, and reproduction.",
+    description: "Tune Eco populations with plants, animals, energy, mating, movement, and reproduction.",
     accent: "olive"
   },
   {
@@ -573,6 +573,8 @@ function setupHubCanvas() {
 const ecosystemLab = (() => {
   const canvas = document.querySelector("#ecosystem-canvas");
   const context = canvas.getContext("2d");
+  const graphCanvas = document.querySelector("#eco-graph-canvas");
+  const graphContext = graphCanvas.getContext("2d");
   const actionButton = document.querySelector("#ecosystem-action-button");
   const reseedButton = document.querySelector("#ecosystem-reseed-button");
   const timerValue = document.querySelector("#eco-timer");
@@ -605,6 +607,8 @@ const ecosystemLab = (() => {
   const settings = {};
   const world = { width: canvas.width, height: canvas.height };
   const caps = { plants: 700, herbivores: 220, predators: 120 };
+  const graphSampleSeconds = 0.5;
+  const graphMaxSamples = 3600;
   let routeActive = false;
   let running = true;
   let animationFrame = 0;
@@ -612,6 +616,9 @@ const ecosystemLab = (() => {
   let elapsedTime = 0;
   let simulationEnded = false;
   let plantSpawnCarry = 0;
+  let graphSampleCarry = 0;
+  let graphDirty = true;
+  let populationHistory = [];
   let organisms = emptyOrganisms();
 
   function emptyOrganisms() {
@@ -683,6 +690,9 @@ const ecosystemLab = (() => {
     readSettings();
     organisms = emptyOrganisms();
     plantSpawnCarry = 0;
+    graphSampleCarry = 0;
+    graphDirty = true;
+    populationHistory = [];
     elapsedTime = 0;
     simulationEnded = false;
     for (let index = 0; index < settings.startPlants; index += 1) {
@@ -696,6 +706,7 @@ const ecosystemLab = (() => {
     }
     running = hasAnimals();
     simulationEnded = !running;
+    recordPopulationSample();
     updateActionButton();
     updateTimer();
     updateCounts();
@@ -1050,6 +1061,7 @@ const ecosystemLab = (() => {
     reproduce("herbivore");
     reproduce("predator");
     finishIfExtinct();
+    capturePopulationHistory(delta);
     updateTimer();
     updateCounts();
   }
@@ -1075,9 +1087,35 @@ const ecosystemLab = (() => {
     timerValue.textContent = formatElapsed(elapsedTime);
   }
 
+  function capturePopulationHistory(delta) {
+    graphSampleCarry += delta;
+    while (graphSampleCarry >= graphSampleSeconds) {
+      recordPopulationSample();
+      graphSampleCarry -= graphSampleSeconds;
+    }
+  }
+
+  function recordPopulationSample() {
+    populationHistory.push({
+      time: elapsedTime,
+      plants: organisms.plants.length,
+      herbivores: organisms.herbivores.length,
+      predators: organisms.predators.length
+    });
+    graphDirty = true;
+    if (populationHistory.length > graphMaxSamples) {
+      populationHistory = populationHistory.slice(-graphMaxSamples);
+    }
+  }
+
   function finishIfExtinct() {
     if (hasAnimals()) {
       return;
+    }
+    const latestSample = populationHistory[populationHistory.length - 1];
+    if (!latestSample || latestSample.time !== elapsedTime) {
+      recordPopulationSample();
+      graphSampleCarry = 0;
     }
     running = false;
     simulationEnded = true;
@@ -1110,11 +1148,84 @@ const ecosystemLab = (() => {
     context.fill();
   }
 
+  function drawGraphLine(points, key, color, maxValue, bounds) {
+    if (points.length < 2) {
+      return;
+    }
+    graphContext.strokeStyle = color;
+    graphContext.lineWidth = 3;
+    graphContext.lineJoin = "round";
+    graphContext.lineCap = "round";
+    graphContext.beginPath();
+    points.forEach((point, index) => {
+      const x = bounds.left + (index / (points.length - 1)) * bounds.width;
+      const y = bounds.top + bounds.height - (point[key] / maxValue) * bounds.height;
+      if (index === 0) {
+        graphContext.moveTo(x, y);
+      } else {
+        graphContext.lineTo(x, y);
+      }
+    });
+    graphContext.stroke();
+  }
+
+  function drawPopulationGraph() {
+    if (!graphDirty) {
+      return;
+    }
+    const width = graphCanvas.width;
+    const height = graphCanvas.height;
+    const bounds = { left: 46, top: 18, width: width - 66, height: height - 48 };
+    let maxValue = 10;
+    populationHistory.forEach((point) => {
+      maxValue = Math.max(maxValue, point.plants, point.herbivores, point.predators);
+    });
+
+    graphContext.clearRect(0, 0, width, height);
+    graphContext.fillStyle = "#f8fbf6";
+    graphContext.fillRect(0, 0, width, height);
+    graphContext.strokeStyle = "rgba(36, 50, 74, 0.09)";
+    graphContext.lineWidth = 1;
+    for (let index = 0; index <= 4; index += 1) {
+      const y = bounds.top + (bounds.height / 4) * index;
+      graphContext.beginPath();
+      graphContext.moveTo(bounds.left, y);
+      graphContext.lineTo(bounds.left + bounds.width, y);
+      graphContext.stroke();
+    }
+    for (let index = 0; index <= 6; index += 1) {
+      const x = bounds.left + (bounds.width / 6) * index;
+      graphContext.beginPath();
+      graphContext.moveTo(x, bounds.top);
+      graphContext.lineTo(x, bounds.top + bounds.height);
+      graphContext.stroke();
+    }
+
+    graphContext.fillStyle = "rgba(23, 32, 47, 0.58)";
+    graphContext.font = "700 18px Inter, Arial, sans-serif";
+    graphContext.textAlign = "right";
+    graphContext.textBaseline = "middle";
+    graphContext.fillText(String(maxValue), bounds.left - 10, bounds.top + 2);
+    graphContext.fillText("0", bounds.left - 10, bounds.top + bounds.height);
+    graphContext.textAlign = "left";
+    graphContext.textBaseline = "alphabetic";
+    graphContext.fillText(formatElapsed(populationHistory[0] ? populationHistory[0].time : 0), bounds.left, height - 14);
+    graphContext.textAlign = "right";
+    const latestSample = populationHistory[populationHistory.length - 1];
+    graphContext.fillText(formatElapsed(latestSample ? latestSample.time : elapsedTime), bounds.left + bounds.width, height - 14);
+
+    drawGraphLine(populationHistory, "plants", colors.plant, maxValue, bounds);
+    drawGraphLine(populationHistory, "herbivores", colors.herbivore, maxValue, bounds);
+    drawGraphLine(populationHistory, "predators", colors.predator, maxValue, bounds);
+    graphDirty = false;
+  }
+
   function draw() {
     drawBackground();
     organisms.plants.forEach((plant) => drawDot(plant, colors.plant, plant.radius));
     organisms.herbivores.forEach((animal) => drawDot(animal, colors.herbivore, animal.radius));
     organisms.predators.forEach((animal) => drawDot(animal, colors.predator, animal.radius));
+    drawPopulationGraph();
     updateCounts();
   }
 
@@ -1124,7 +1235,7 @@ const ecosystemLab = (() => {
       labelNode.className = "button-label";
       labelNode.textContent = "Ended";
       actionButton.replaceChildren(labelNode);
-      actionButton.setAttribute("aria-label", "Simulation ended; reseed ecosystem to start again");
+      actionButton.setAttribute("aria-label", "Simulation ended; reseed Eco to start again");
       actionButton.disabled = true;
       return;
     }
@@ -1201,7 +1312,7 @@ const ecosystemLab = (() => {
   });
 
   readSettings();
-  setShortcutLabel(reseedButton, "Reseed", "R", "Reseed ecosystem");
+  setShortcutLabel(reseedButton, "Reseed", "R", "Reseed Eco");
   seed();
   updateActionButton();
 

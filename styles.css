@@ -947,7 +947,6 @@ a:focus-visible {
 }
 
 .ecosystem-stage {
-  position: relative;
   overflow: hidden;
   width: 100%;
   border: 1px solid rgba(23, 32, 47, 0.14);
@@ -956,12 +955,56 @@ a:focus-visible {
   box-shadow: var(--shadow);
 }
 
+.eco-canvas-wrap {
+  position: relative;
+}
+
 #ecosystem-canvas {
   display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 8 / 5;
   background: #f3f8f2;
+}
+
+.eco-graph-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid rgba(23, 32, 47, 0.1);
+  background: #f8fbf6;
+}
+
+.eco-graph-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.eco-graph-header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.eco-graph-header span:first-child {
+  margin-right: auto;
+  color: var(--ink);
+}
+
+#eco-graph-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 3;
+  border: 1px solid rgba(23, 32, 47, 0.09);
+  border-radius: calc(var(--radius) - 4px);
+  background: #f8fbf6;
 }
 
 .ecosystem-legend {
