@@ -441,6 +441,10 @@ button kbd {
   --accent: var(--gold);
 }
 
+.accent-violet {
+  --accent: var(--violet);
+}
+
 .split-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr);
@@ -497,6 +501,300 @@ button kbd {
 
 #ecosystem-view .tool-stats {
   grid-template-columns: repeat(4, minmax(76px, 1fr));
+}
+
+.tasha-view {
+  --tasha-chart-1: #d7564a;
+  --tasha-chart-2: #2f8f83;
+  --tasha-chart-3: #e2a82e;
+  --tasha-chart-4: #2678b8;
+}
+
+.tasha-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 16px;
+  align-items: start;
+}
+
+.tasha-play-panel {
+  border-color: rgba(120, 86, 183, 0.28);
+}
+
+.tasha-host-panel {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 14px;
+}
+
+.tasha-player-form,
+.tasha-question-list {
+  display: grid;
+  gap: 16px;
+}
+
+.tasha-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid rgba(120, 86, 183, 0.22);
+  border-radius: 999px;
+  background: rgba(120, 86, 183, 0.1);
+  color: var(--violet);
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.tasha-question {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(23, 32, 47, 0.12);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.tasha-question legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.tasha-question legend span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(215, 86, 74, 0.12);
+  color: var(--coral);
+  font-size: 0.84rem;
+}
+
+.tasha-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tasha-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 47, 0.12);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.tasha-option:has(input:checked) {
+  border-color: rgba(120, 86, 183, 0.42);
+  background: rgba(120, 86, 183, 0.11);
+}
+
+.tasha-option input {
+  min-height: 0;
+  accent-color: var(--violet);
+}
+
+.tasha-submit-row,
+.tasha-host-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tasha-submit-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.status-line[data-tone="success"] {
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.status-line[data-tone="error"] {
+  color: var(--coral);
+  font-weight: 850;
+}
+
+.status-line[data-tone="warning"] {
+  color: #9a6a12;
+  font-weight: 850;
+}
+
+.tool-stats span[data-state="closed"] {
+  border-color: rgba(215, 86, 74, 0.32);
+  background: rgba(215, 86, 74, 0.1);
+}
+
+.tool-stats span[data-state="open"] {
+  border-color: rgba(47, 143, 131, 0.3);
+  background: rgba(47, 143, 131, 0.1);
+}
+
+.tasha-review-panel {
+  margin-top: 18px;
+}
+
+.tasha-scoreboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tasha-score-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 47, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.tasha-score-card span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(226, 168, 46, 0.18);
+  color: #8a6316;
+  font-weight: 900;
+}
+
+.tasha-score-card strong,
+.tasha-score-card em {
+  overflow-wrap: anywhere;
+}
+
+.tasha-score-card em {
+  color: var(--violet);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.tasha-review-list {
+  display: grid;
+  gap: 14px;
+}
+
+.tasha-review-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(23, 32, 47, 0.12);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 30px rgba(23, 32, 47, 0.05);
+}
+
+.tasha-review-card header {
+  display: grid;
+  gap: 6px;
+}
+
+.tasha-review-card header span {
+  color: var(--coral);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tasha-review-card h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.tasha-review-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.tasha-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.tasha-chart-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.52fr) minmax(140px, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.tasha-chart-row > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tasha-chart-row strong,
+.tasha-chart-row p {
+  overflow-wrap: anywhere;
+}
+
+.tasha-chart-row.correct strong::after {
+  color: var(--teal);
+  content: " correct";
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tasha-bar {
+  overflow: hidden;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(23, 32, 47, 0.08);
+}
+
+.tasha-bar span {
+  display: block;
+  width: var(--bar);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--chart-color);
+  transition: width 220ms ease;
+}
+
+.tasha-chart-row p {
+  grid-column: 2;
+  font-size: 0.84rem;
+}
+
+.tasha-correct-list {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: rgba(47, 143, 131, 0.1);
+  color: var(--teal);
+}
+
+.tasha-correct-list span {
+  color: var(--ink);
+  font-weight: 760;
 }
 
 .namehat-layout {
@@ -1466,11 +1764,16 @@ a:focus-visible {
 
   .hero-grid,
   .split-band,
+  .tasha-layout,
   .game-layout,
   .ecosystem-layout,
   .starhopper-layout,
   .namehat-layout {
     grid-template-columns: 1fr;
+  }
+
+  .tasha-host-panel {
+    position: static;
   }
 
   #blocks-view .tool-header {
@@ -1743,9 +2046,20 @@ a:focus-visible {
   .hero-actions,
   .capture-actions,
   .game-buttons,
+  .tasha-options,
+  .tasha-submit-row,
+  .tasha-host-buttons,
   .inline-field {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .tasha-chart-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tasha-chart-row p {
+    grid-column: auto;
   }
 
   .tool-stats {

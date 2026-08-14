@@ -10,6 +10,7 @@ import { starHopperLevels } from "./lib/starHopperLevels.mjs";
 const routes = new Map([
   ["home", document.querySelector("#home-view")],
   ["namehat", document.querySelector("#namehat-view")],
+  ["tasha", document.querySelector("#tasha-view")],
   ["ecosystem", document.querySelector("#ecosystem-view")],
   ["starhopper", document.querySelector("#starhopper-view")],
   ["blocks", document.querySelector("#blocks-view")]
@@ -22,6 +23,13 @@ const appRegistry = [
     kicker: "Private random picker",
     description: "Voice capture, editable rosters, hidden draws, and no paper slips.",
     accent: "teal"
+  },
+  {
+    id: "tasha",
+    title: "Tasha Trivia",
+    kicker: "Birthday game",
+    description: "A shared quiz with party answers, host controls, and colorful results.",
+    accent: "violet"
   },
   {
     id: "ecosystem",
@@ -116,6 +124,7 @@ function renderRoute() {
   document.body.classList.toggle("blocks-route", activeRoute === "blocks");
   tetris.setRouteActive(activeRoute === "blocks");
   starHopper.setRouteActive(activeRoute === "starhopper");
+  tashaTrivia.setRouteActive(activeRoute === "tasha");
   ecosystemLab.setRouteActive(activeRoute === "ecosystem");
 
   if (activeRoute === "blocks") {
@@ -521,6 +530,554 @@ function setShortcutLabel(button, label, shortcut, ariaLabel = label) {
   button.replaceChildren(labelNode, shortcutNode);
   button.setAttribute("aria-label", `${ariaLabel}, keyboard shortcut ${shortcut}`);
 }
+
+const tashaTrivia = (() => {
+  // Paste the deployed Google Apps Script /exec URL here to enable shared party mode.
+  const scriptUrl = "";
+  const localHostPin = "tasha";
+  const localStorageKey = "ericensen-tasha-trivia-demo-v1";
+  const playerStorageKey = "ericensen-tasha-trivia-player-v1";
+  const questions = [
+    {
+      id: "dessert",
+      prompt: "What is Tasha's ideal birthday dessert?",
+      correct: "cake",
+      options: [
+        { id: "cake", label: "Chocolate cake" },
+        { id: "pie", label: "Berry pie" },
+        { id: "icecream", label: "Ice cream sundae" },
+        { id: "cookies", label: "Warm cookies" }
+      ]
+    },
+    {
+      id: "trip",
+      prompt: "What kind of getaway would Tasha pick first?",
+      correct: "beach",
+      options: [
+        { id: "beach", label: "Beach weekend" },
+        { id: "mountains", label: "Mountain cabin" },
+        { id: "city", label: "Big city food tour" },
+        { id: "quiet", label: "Quiet staycation" }
+      ]
+    },
+    {
+      id: "drink",
+      prompt: "What drink is most Tasha-coded?",
+      correct: "coffee",
+      options: [
+        { id: "coffee", label: "Coffee" },
+        { id: "tea", label: "Tea" },
+        { id: "sparkling", label: "Sparkling water" },
+        { id: "smoothie", label: "Smoothie" }
+      ]
+    },
+    {
+      id: "superpower",
+      prompt: "Which superpower would Tasha actually use the most?",
+      correct: "teleport",
+      options: [
+        { id: "teleport", label: "Teleportation" },
+        { id: "flight", label: "Flight" },
+        { id: "invisible", label: "Invisibility" },
+        { id: "time", label: "Time travel" }
+      ]
+    },
+    {
+      id: "music",
+      prompt: "What music would Tasha put on for a good mood?",
+      correct: "pop",
+      options: [
+        { id: "pop", label: "Bright pop" },
+        { id: "country", label: "Country" },
+        { id: "classics", label: "Old favorites" },
+        { id: "dance", label: "Dance playlist" }
+      ]
+    },
+    {
+      id: "pet",
+      prompt: "Which animal would Tasha most want to hang out with?",
+      correct: "dog",
+      options: [
+        { id: "dog", label: "A loyal dog" },
+        { id: "cat", label: "A cozy cat" },
+        { id: "horse", label: "A gentle horse" },
+        { id: "otter", label: "A playful otter" }
+      ]
+    },
+    {
+      id: "movie",
+      prompt: "What movie-night lane is most Tasha?",
+      correct: "comedy",
+      options: [
+        { id: "comedy", label: "Comedy" },
+        { id: "romance", label: "Romance" },
+        { id: "mystery", label: "Mystery" },
+        { id: "adventure", label: "Adventure" }
+      ]
+    },
+    {
+      id: "gift",
+      prompt: "Which birthday gift would Tasha enjoy most?",
+      correct: "experience",
+      options: [
+        { id: "experience", label: "A fun experience" },
+        { id: "flowers", label: "Flowers" },
+        { id: "book", label: "A good book" },
+        { id: "jewelry", label: "Jewelry" }
+      ]
+    },
+    {
+      id: "morning",
+      prompt: "What is Tasha's ideal birthday morning?",
+      correct: "slow",
+      options: [
+        { id: "slow", label: "Slow breakfast" },
+        { id: "walk", label: "A fresh walk" },
+        { id: "sleep", label: "Sleeping in" },
+        { id: "surprise", label: "A surprise plan" }
+      ]
+    },
+    {
+      id: "phrase",
+      prompt: "What phrase best describes Tasha?",
+      correct: "warm",
+      options: [
+        { id: "warm", label: "Warm and thoughtful" },
+        { id: "bold", label: "Bold and adventurous" },
+        { id: "funny", label: "Quick and funny" },
+        { id: "calm", label: "Calm and steady" }
+      ]
+    }
+  ];
+
+  const elements = {
+    status: document.querySelector("#tasha-status-value"),
+    playerCount: document.querySelector("#tasha-player-count"),
+    questionCount: document.querySelector("#tasha-question-count"),
+    modePill: document.querySelector("#tasha-mode-pill"),
+    playerForm: document.querySelector("#tasha-player-form"),
+    playerName: document.querySelector("#tasha-player-name"),
+    saveNameButton: document.querySelector("#tasha-save-name-button"),
+    questionList: document.querySelector("#tasha-question-list"),
+    submitButton: document.querySelector("#tasha-submit-button"),
+    playerMessage: document.querySelector("#tasha-player-message"),
+    hostPin: document.querySelector("#tasha-host-pin"),
+    refreshButton: document.querySelector("#tasha-refresh-button"),
+    closeButton: document.querySelector("#tasha-close-button"),
+    openButton: document.querySelector("#tasha-open-button"),
+    resetButton: document.querySelector("#tasha-reset-button"),
+    hostMessage: document.querySelector("#tasha-host-message"),
+    reviewCount: document.querySelector("#tasha-review-count"),
+    scoreboard: document.querySelector("#tasha-scoreboard"),
+    reviewList: document.querySelector("#tasha-review-list")
+  };
+
+  const isSharedMode = Boolean(scriptUrl.trim());
+  let gameOpen = true;
+  let routeActive = false;
+  let refreshTimer = 0;
+
+  function loadPlayer() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(playerStorageKey) || "{}");
+      if (stored.id && stored.name) {
+        return stored;
+      }
+    } catch {
+      // Ignore malformed local data.
+    }
+    const randomId = window.crypto && typeof window.crypto.randomUUID === "function"
+      ? window.crypto.randomUUID()
+      : `player-${Date.now()}-${Math.random()}`;
+    return { id: randomId, name: "" };
+  }
+
+  let player = loadPlayer();
+
+  function savePlayer() {
+    player.name = elements.playerName.value.trim();
+    localStorage.setItem(playerStorageKey, JSON.stringify(player));
+  }
+
+  function loadLocalGame() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(localStorageKey) || "{}");
+      return {
+        open: stored.open !== false,
+        responses: Array.isArray(stored.responses) ? stored.responses : []
+      };
+    } catch {
+      return { open: true, responses: [] };
+    }
+  }
+
+  function saveLocalGame(game) {
+    localStorage.setItem(localStorageKey, JSON.stringify(game));
+  }
+
+  function requireLocalPin(pin) {
+    if (pin !== localHostPin) {
+      return { ok: false, error: "Host PIN did not match." };
+    }
+    return null;
+  }
+
+  function localApi(action, data = {}) {
+    const game = loadLocalGame();
+    if (action === "state") {
+      return Promise.resolve({ ok: true, mode: "demo", open: game.open, responseCount: game.responses.length });
+    }
+    if (action === "submit") {
+      if (!game.open) {
+        return Promise.resolve({ ok: false, error: "The game is closed." });
+      }
+      const nextResponse = {
+        playerId: data.playerId,
+        playerName: data.playerName,
+        answers: data.answers,
+        submittedAt: new Date().toISOString()
+      };
+      const existingIndex = game.responses.findIndex((response) => response.playerId === data.playerId);
+      if (existingIndex >= 0) {
+        game.responses[existingIndex] = nextResponse;
+      } else {
+        game.responses.push(nextResponse);
+      }
+      saveLocalGame(game);
+      return Promise.resolve({ ok: true, open: game.open, responseCount: game.responses.length });
+    }
+    if (["responses", "close", "open", "reset"].includes(action)) {
+      const pinError = requireLocalPin(data.pin);
+      if (pinError) {
+        return Promise.resolve(pinError);
+      }
+    }
+    if (action === "close") {
+      game.open = false;
+      saveLocalGame(game);
+    }
+    if (action === "open") {
+      game.open = true;
+      saveLocalGame(game);
+    }
+    if (action === "reset") {
+      game.responses = [];
+      game.open = true;
+      saveLocalGame(game);
+    }
+    if (["responses", "close", "open", "reset"].includes(action)) {
+      return Promise.resolve({
+        ok: true,
+        mode: "demo",
+        open: game.open,
+        responseCount: game.responses.length,
+        responses: game.responses
+      });
+    }
+    return Promise.resolve({ ok: false, error: "Unknown action." });
+  }
+
+  function jsonpApi(action, data = {}) {
+    return new Promise((resolve, reject) => {
+      const callbackName = `tashaTriviaCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const url = new URL(scriptUrl);
+      url.searchParams.set("action", action);
+      url.searchParams.set("callback", callbackName);
+      Object.entries(data).forEach(([key, value]) => {
+        url.searchParams.set(key, typeof value === "string" ? value : JSON.stringify(value));
+      });
+
+      const script = document.createElement("script");
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("The Google Apps Script request timed out."));
+      }, 12000);
+
+      function cleanup() {
+        window.clearTimeout(timeout);
+        delete window[callbackName];
+        script.remove();
+      }
+
+      window[callbackName] = (payload) => {
+        cleanup();
+        resolve(payload);
+      };
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("The Google Apps Script request failed."));
+      };
+      script.src = url.toString();
+      document.body.append(script);
+    });
+  }
+
+  function api(action, data = {}) {
+    return isSharedMode ? jsonpApi(action, data) : localApi(action, data);
+  }
+
+  function setPlayerMessage(message, tone = "") {
+    elements.playerMessage.textContent = message;
+    elements.playerMessage.dataset.tone = tone;
+  }
+
+  function setHostMessage(message, tone = "") {
+    elements.hostMessage.textContent = message;
+    elements.hostMessage.dataset.tone = tone;
+  }
+
+  function renderQuestions() {
+    elements.questionCount.textContent = questions.length;
+    elements.questionList.innerHTML = questions.map((question, questionIndex) => `
+      <fieldset class="tasha-question" data-question-id="${question.id}">
+        <legend>
+          <span>${questionIndex + 1}</span>
+          ${escapeHtml(question.prompt)}
+        </legend>
+        <div class="tasha-options">
+          ${question.options.map((option) => `
+            <label class="tasha-option">
+              <input type="radio" name="tasha-${question.id}" value="${option.id}">
+              <span>${escapeHtml(option.label)}</span>
+            </label>
+          `).join("")}
+        </div>
+      </fieldset>
+    `).join("");
+  }
+
+  function setQuizDisabled(disabled) {
+    elements.submitButton.disabled = disabled;
+    elements.questionList.querySelectorAll("input").forEach((input) => {
+      input.disabled = disabled;
+    });
+  }
+
+  function applyState(payload) {
+    if (!payload?.ok) {
+      throw new Error(payload?.error || "Could not load game state.");
+    }
+    gameOpen = payload.open !== false;
+    elements.status.textContent = gameOpen ? "Open" : "Closed";
+    elements.status.parentElement.dataset.state = gameOpen ? "open" : "closed";
+    elements.playerCount.textContent = payload.responseCount || 0;
+    elements.modePill.textContent = isSharedMode ? "Shared mode" : "Demo mode";
+    setQuizDisabled(!gameOpen);
+    if (!gameOpen) {
+      setPlayerMessage("The game is closed for review.", "warning");
+    } else if (!elements.playerMessage.textContent) {
+      setPlayerMessage("");
+    }
+  }
+
+  async function refreshState() {
+    try {
+      const payload = await api("state");
+      applyState(payload);
+    } catch (error) {
+      setPlayerMessage(error.message, "error");
+    }
+  }
+
+  function collectAnswers() {
+    const answers = {};
+    const missing = [];
+    questions.forEach((question) => {
+      const checked = elements.questionList.querySelector(`input[name="tasha-${question.id}"]:checked`);
+      if (checked) {
+        answers[question.id] = checked.value;
+      } else {
+        missing.push(question.id);
+      }
+    });
+    return { answers, missing };
+  }
+
+  function scoreResponse(response) {
+    return questions.reduce((score, question) => (
+      response.answers?.[question.id] === question.correct ? score + 1 : score
+    ), 0);
+  }
+
+  function optionLabel(question, optionId) {
+    return question.options.find((option) => option.id === optionId)?.label || optionId || "No answer";
+  }
+
+  function responseName(response) {
+    return response.playerName || "Anonymous";
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    savePlayer();
+    const playerName = player.name;
+    if (!playerName) {
+      setPlayerMessage("Add your name first.", "error");
+      elements.playerName.focus();
+      return;
+    }
+    const { answers, missing } = collectAnswers();
+    if (missing.length) {
+      setPlayerMessage(`Answer ${missing.length === 1 ? "one question" : "all questions"} before submitting.`, "error");
+      return;
+    }
+    try {
+      elements.submitButton.disabled = true;
+      const payload = await api("submit", { playerId: player.id, playerName, answers });
+      if (!payload.ok) {
+        throw new Error(payload.error || "Could not submit answers.");
+      }
+      applyState(payload);
+      setPlayerMessage("Answers submitted. You are in.", "success");
+    } catch (error) {
+      setPlayerMessage(error.message, "error");
+    } finally {
+      if (gameOpen) {
+        elements.submitButton.disabled = false;
+      }
+    }
+  }
+
+  function renderScoreboard(responses) {
+    if (!responses.length) {
+      elements.scoreboard.innerHTML = "";
+      return;
+    }
+    const scored = responses
+      .map((response) => ({ ...response, score: scoreResponse(response) }))
+      .sort((left, right) => right.score - left.score || responseName(left).localeCompare(responseName(right)));
+    elements.scoreboard.innerHTML = scored.map((response, index) => `
+      <div class="tasha-score-card">
+        <span>${index + 1}</span>
+        <strong>${escapeHtml(responseName(response))}</strong>
+        <em>${response.score}/${questions.length}</em>
+      </div>
+    `).join("");
+  }
+
+  function renderReview(responses = []) {
+    elements.reviewCount.textContent = responses.length
+      ? `${responses.length} ${responses.length === 1 ? "response" : "responses"}`
+      : "No responses yet";
+    renderScoreboard(responses);
+    if (!responses.length) {
+      elements.reviewList.innerHTML = `<p class="empty-state">No answers loaded yet.</p>`;
+      return;
+    }
+
+    elements.reviewList.innerHTML = questions.map((question, questionIndex) => {
+      const optionRows = question.options.map((option, optionIndex) => {
+        const names = responses
+          .filter((response) => response.answers?.[question.id] === option.id)
+          .map(responseName);
+        const percent = responses.length ? (names.length / responses.length) * 100 : 0;
+        const isCorrect = option.id === question.correct;
+        return `
+          <div class="tasha-chart-row ${isCorrect ? "correct" : ""}" style="--bar: ${percent.toFixed(1)}%; --chart-color: var(--tasha-chart-${optionIndex + 1});">
+            <div>
+              <strong>${escapeHtml(option.label)}</strong>
+              <span>${names.length}</span>
+            </div>
+            <div class="tasha-bar" aria-hidden="true"><span></span></div>
+            <p>${names.length ? names.map(escapeHtml).join(", ") : "No guesses"}</p>
+          </div>
+        `;
+      }).join("");
+      const correctNames = responses
+        .filter((response) => response.answers?.[question.id] === question.correct)
+        .map(responseName);
+      return `
+        <article class="tasha-review-card">
+          <header>
+            <span>Question ${questionIndex + 1}</span>
+            <h3>${escapeHtml(question.prompt)}</h3>
+            <p>Answer: <strong>${escapeHtml(optionLabel(question, question.correct))}</strong></p>
+          </header>
+          <div class="tasha-chart">${optionRows}</div>
+          <div class="tasha-correct-list">
+            <strong>Correct</strong>
+            <span>${correctNames.length ? correctNames.map(escapeHtml).join(", ") : "Nobody yet"}</span>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function hostPin() {
+    return elements.hostPin.value.trim();
+  }
+
+  async function refreshReview() {
+    try {
+      const payload = await api("responses", { pin: hostPin() });
+      if (!payload.ok) {
+        throw new Error(payload.error || "Could not load responses.");
+      }
+      applyState(payload);
+      renderReview(payload.responses || []);
+      setHostMessage("Review loaded.", "success");
+    } catch (error) {
+      setHostMessage(error.message, "error");
+    }
+  }
+
+  async function hostAction(action) {
+    try {
+      const payload = await api(action, { pin: hostPin() });
+      if (!payload.ok) {
+        throw new Error(payload.error || "Host action failed.");
+      }
+      applyState(payload);
+      renderReview(payload.responses || []);
+      const labels = { close: "Game closed.", open: "Game reopened.", reset: "Responses reset." };
+      setHostMessage(labels[action] || "Done.", "success");
+    } catch (error) {
+      setHostMessage(error.message, "error");
+    }
+  }
+
+  function startRefreshTimer() {
+    if (refreshTimer) {
+      return;
+    }
+    refreshTimer = window.setInterval(refreshState, 10000);
+  }
+
+  function stopRefreshTimer() {
+    window.clearInterval(refreshTimer);
+    refreshTimer = 0;
+  }
+
+  renderQuestions();
+  renderReview([]);
+  elements.playerName.value = player.name || "";
+  elements.playerForm.addEventListener("submit", handleSubmit);
+  elements.saveNameButton.addEventListener("click", () => {
+    savePlayer();
+    setPlayerMessage(player.name ? "Name saved." : "Add your name first.", player.name ? "success" : "error");
+  });
+  elements.refreshButton.addEventListener("click", refreshReview);
+  elements.closeButton.addEventListener("click", () => hostAction("close"));
+  elements.openButton.addEventListener("click", () => hostAction("open"));
+  elements.resetButton.addEventListener("click", () => {
+    if (window.confirm("Reset all Tasha Trivia responses?")) {
+      hostAction("reset");
+    }
+  });
+  refreshState();
+
+  return {
+    setRouteActive(isActive) {
+      routeActive = isActive;
+      if (routeActive) {
+        refreshState();
+        startRefreshTimer();
+      } else {
+        stopRefreshTimer();
+      }
+    }
+  };
+})();
 
 function setupHubCanvas() {
   const canvas = document.querySelector("#hub-canvas");

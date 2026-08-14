@@ -6,7 +6,7 @@
     <title>Ericensen Home</title>
     <meta
       name="description"
-      content="A personal homepage and app hub for Ericensen, with NameHat, Eco Lab, Star Hopper, and a simple block stacking game."
+      content="A personal homepage and app hub for Ericensen, with NameHat, Tasha Trivia, Eco Lab, Star Hopper, and a simple block stacking game."
     >
     <meta name="theme-color" content="#f7f5ef">
     <meta property="og:title" content="Ericensen Home">
@@ -27,6 +27,7 @@
         <nav class="top-nav" aria-label="Primary navigation">
           <a href="#home" data-nav="home">Home</a>
           <a href="#namehat" data-nav="namehat">NameHat</a>
+          <a href="#tasha" data-nav="tasha">Tasha</a>
           <a href="#ecosystem" data-nav="ecosystem">Eco</a>
           <a href="#starhopper" data-nav="starhopper">Star Hopper</a>
           <a href="#blocks" data-nav="blocks">Blocks</a>
@@ -54,7 +55,7 @@
               <div class="hub-chip chip-two">Blocks</div>
               <div class="hub-chip chip-three">Star Hopper</div>
               <div class="hub-chip chip-four">Eco</div>
-              <div class="hub-chip chip-five">Projects</div>
+              <div class="hub-chip chip-five">Tasha Trivia</div>
             </div>
           </div>
 
@@ -224,6 +225,80 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <section id="tasha-view" class="view tasha-view" aria-labelledby="tasha-title">
+          <div class="tool-header">
+            <div>
+              <p class="eyebrow">Birthday trivia</p>
+              <h1 id="tasha-title">How Well Do You Know Tasha?</h1>
+              <p class="tool-subtitle">A party quiz for names, guesses, reveals, and colorful answer review.</p>
+            </div>
+            <div class="tool-stats" aria-label="Tasha Trivia totals">
+              <span><strong id="tasha-status-value">Open</strong>Status</span>
+              <span><strong id="tasha-player-count">0</strong>Players</span>
+              <span><strong id="tasha-question-count">10</strong>Questions</span>
+            </div>
+          </div>
+
+          <div class="tasha-layout">
+            <section class="tool-panel tasha-play-panel" aria-labelledby="tasha-play-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Play</p>
+                  <h2 id="tasha-play-title">Submit your answers</h2>
+                </div>
+                <span id="tasha-mode-pill" class="tasha-mode-pill">Demo mode</span>
+              </div>
+
+              <form id="tasha-player-form" class="tasha-player-form">
+                <label class="field-label" for="tasha-player-name">Your name</label>
+                <div class="inline-field">
+                  <input id="tasha-player-name" type="text" autocomplete="name" placeholder="First name">
+                  <button id="tasha-save-name-button" class="button quiet" type="button">Save</button>
+                </div>
+
+                <div id="tasha-question-list" class="tasha-question-list" aria-live="polite"></div>
+
+                <div class="tasha-submit-row">
+                  <button id="tasha-submit-button" class="button primary" type="submit">Submit Answers</button>
+                  <p id="tasha-player-message" class="status-line" role="status"></p>
+                </div>
+              </form>
+            </section>
+
+            <aside class="tool-panel tasha-host-panel" aria-labelledby="tasha-host-title">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">Host</p>
+                  <h2 id="tasha-host-title">Game controls</h2>
+                </div>
+              </div>
+
+              <label class="field-label" for="tasha-host-pin">Host PIN</label>
+              <input id="tasha-host-pin" type="password" autocomplete="off" placeholder="PIN">
+
+              <div class="tasha-host-buttons">
+                <button id="tasha-refresh-button" class="button quiet" type="button">Refresh</button>
+                <button id="tasha-close-button" class="button primary" type="button">Close Game</button>
+                <button id="tasha-open-button" class="button ghost" type="button">Reopen</button>
+              </div>
+              <button id="tasha-reset-button" class="button ghost danger" type="button">Reset Responses</button>
+              <p id="tasha-host-message" class="status-line" role="status"></p>
+            </aside>
+          </div>
+
+          <section class="tasha-review-panel" aria-labelledby="tasha-review-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Review</p>
+                <h2 id="tasha-review-title">Answer reveal</h2>
+              </div>
+              <span id="tasha-review-count" class="tasha-mode-pill">No responses yet</span>
+            </div>
+            <div id="tasha-scoreboard" class="tasha-scoreboard" aria-live="polite"></div>
+            <div id="tasha-review-list" class="tasha-review-list"></div>
+          </section>
         </section>
 
         <section id="ecosystem-view" class="view ecosystem-view" aria-labelledby="ecosystem-title">
