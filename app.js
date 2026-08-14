@@ -533,7 +533,7 @@ function setShortcutLabel(button, label, shortcut, ariaLabel = label) {
 
 const tashaTrivia = (() => {
   // Paste the deployed Google Apps Script /exec URL here to enable shared party mode.
-  const scriptUrl = "";
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbx5ATHJbvPvpi-zpwymnjI2vAPl5YBlMeCb4uaRr05dRE65hotmULFrY4wYLk9Of0-N/exec";
   const localHostPin = "tasha";
   const localStorageKey = "ericensen-tasha-trivia-demo-v1";
   const playerStorageKey = "ericensen-tasha-trivia-player-v1";
