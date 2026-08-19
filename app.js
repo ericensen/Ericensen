@@ -539,113 +539,113 @@ const tashaTrivia = (() => {
   const playerStorageKey = "ericensen-tasha-trivia-player-v1";
   const questions = [
     {
-      id: "dessert",
-      prompt: "What is Tasha's ideal birthday dessert?",
-      correct: "cake",
+      id: "favorite-food",
+      prompt: "What is Tasha's favorite food?",
+      correct: "c",
       options: [
-        { id: "cake", label: "Chocolate cake" },
-        { id: "pie", label: "Berry pie" },
-        { id: "icecream", label: "Ice cream sundae" },
-        { id: "cookies", label: "Warm cookies" }
+        { id: "a", label: "Dolma" },
+        { id: "b", label: "Sloppy Joes" },
+        { id: "c", label: "Kebab" },
+        { id: "d", label: "Baklava" }
       ]
     },
     {
-      id: "trip",
-      prompt: "What kind of getaway would Tasha pick first?",
-      correct: "beach",
+      id: "irrational-fear",
+      prompt: "What is Tasha irrationally afraid of?",
+      correct: "b",
       options: [
-        { id: "beach", label: "Beach weekend" },
-        { id: "mountains", label: "Mountain cabin" },
-        { id: "city", label: "Big city food tour" },
-        { id: "quiet", label: "Quiet staycation" }
+        { id: "a", label: "Spiders" },
+        { id: "b", label: "Wind" },
+        { id: "c", label: "Heights" },
+        { id: "d", label: "Germs" }
       ]
     },
     {
-      id: "drink",
-      prompt: "What drink is most Tasha-coded?",
-      correct: "coffee",
+      id: "pet-peeve",
+      prompt: "What is Tasha's biggest pet peeve?",
+      correct: "d",
       options: [
-        { id: "coffee", label: "Coffee" },
-        { id: "tea", label: "Tea" },
-        { id: "sparkling", label: "Sparkling water" },
-        { id: "smoothie", label: "Smoothie" }
+        { id: "a", label: "A dirty house" },
+        { id: "b", label: "Loud neighbors" },
+        { id: "c", label: "People being late" },
+        { id: "d", label: "People chewing with their mouth open" }
       ]
     },
     {
-      id: "superpower",
-      prompt: "Which superpower would Tasha actually use the most?",
-      correct: "teleport",
+      id: "constant-phrase",
+      prompt: "What is a phrase Tasha says constantly?",
+      correct: "c",
       options: [
-        { id: "teleport", label: "Teleportation" },
-        { id: "flight", label: "Flight" },
-        { id: "invisible", label: "Invisibility" },
-        { id: "time", label: "Time travel" }
+        { id: "a", label: "Utembiesges" },
+        { id: "b", label: "\"Whatever.\"" },
+        { id: "c", label: "\"Lav eli.\"" },
+        { id: "d", label: "\"Don't even start.\"" }
       ]
     },
     {
-      id: "music",
-      prompt: "What music would Tasha put on for a good mood?",
-      correct: "pop",
+      id: "dream-trip",
+      prompt: "If Tasha could hop on a plane tomorrow, where would she most likely want to go?",
+      correct: "b",
       options: [
-        { id: "pop", label: "Bright pop" },
-        { id: "country", label: "Country" },
-        { id: "classics", label: "Old favorites" },
-        { id: "dance", label: "Dance playlist" }
+        { id: "a", label: "Hawaii" },
+        { id: "b", label: "Armenia" },
+        { id: "c", label: "Mexico" },
+        { id: "d", label: "Greece" }
       ]
     },
     {
-      id: "pet",
-      prompt: "Which animal would Tasha most want to hang out with?",
-      correct: "dog",
+      id: "not-mad",
+      prompt: "What is Tasha most likely to do when she's mad but says she's \"not mad\"?",
+      correct: "c",
       options: [
-        { id: "dog", label: "A loyal dog" },
-        { id: "cat", label: "A cozy cat" },
-        { id: "horse", label: "A gentle horse" },
-        { id: "otter", label: "A playful otter" }
+        { id: "a", label: "She starts hugging everyone and apologizing" },
+        { id: "b", label: "She goes and takes a nap" },
+        { id: "c", label: "She starts cleaning the house" },
+        { id: "d", label: "She takes a little \"personal time\" to cool off" }
       ]
     },
     {
-      id: "movie",
-      prompt: "What movie-night lane is most Tasha?",
-      correct: "comedy",
+      id: "five-minutes",
+      prompt: "If Tasha says, \"I'll be ready in five minutes,\" how much time should you actually expect?",
+      correct: "b",
       options: [
-        { id: "comedy", label: "Comedy" },
-        { id: "romance", label: "Romance" },
-        { id: "mystery", label: "Mystery" },
-        { id: "adventure", label: "Adventure" }
+        { id: "a", label: "5 minutes" },
+        { id: "b", label: "10 minutes" },
+        { id: "c", label: "20 minutes" },
+        { id: "d", label: "30 minutes" }
       ]
     },
     {
-      id: "gift",
-      prompt: "Which birthday gift would Tasha enjoy most?",
-      correct: "experience",
+      id: "personal-help",
+      prompt: "If Tasha could hire someone to permanently do ONE thing for her, what would it be?",
+      correct: "b",
       options: [
-        { id: "experience", label: "A fun experience" },
-        { id: "flowers", label: "Flowers" },
-        { id: "book", label: "A good book" },
-        { id: "jewelry", label: "Jewelry" }
+        { id: "a", label: "Personal chef" },
+        { id: "b", label: "Housekeeper" },
+        { id: "c", label: "Personal assistant" },
+        { id: "d", label: "Chauffeur" }
       ]
     },
     {
-      id: "morning",
-      prompt: "What is Tasha's ideal birthday morning?",
-      correct: "slow",
+      id: "good-mood",
+      prompt: "What is the fastest way to put Tasha in a good mood?",
+      correct: "d",
       options: [
-        { id: "slow", label: "Slow breakfast" },
-        { id: "walk", label: "A fresh walk" },
-        { id: "sleep", label: "Sleeping in" },
-        { id: "surprise", label: "A surprise plan" }
+        { id: "a", label: "Buy her a Gourmandise chocolate mousse cake slice" },
+        { id: "b", label: "Give her a hug and lots of kisses" },
+        { id: "c", label: "Buy her favorite shoes and a nice bag" },
+        { id: "d", label: "All of the above" }
       ]
     },
     {
-      id: "phrase",
-      prompt: "What phrase best describes Tasha?",
-      correct: "warm",
+      id: "warning-label",
+      prompt: "If Tasha came with a warning label, what would it say?",
+      correct: "b",
       options: [
-        { id: "warm", label: "Warm and thoughtful" },
-        { id: "bold", label: "Bold and adventurous" },
-        { id: "funny", label: "Quick and funny" },
-        { id: "calm", label: "Calm and steady" }
+        { id: "a", label: "Fragile: Handle with care" },
+        { id: "b", label: "Under no circumstances say, \"Calm down.\"" },
+        { id: "c", label: "Caution: Contents may be under pressure" },
+        { id: "d", label: "Do not feed the animals" }
       ]
     }
   ];
