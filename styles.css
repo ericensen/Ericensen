@@ -797,6 +797,47 @@ button kbd {
   font-weight: 760;
 }
 
+.tasha-qr-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 156px;
+  gap: 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(120, 86, 183, 0.2);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(120, 86, 183, 0.12), rgba(47, 143, 131, 0.09)),
+    rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 30px rgba(23, 32, 47, 0.05);
+}
+
+.tasha-qr-panel h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.35rem;
+}
+
+.tasha-qr-panel p {
+  margin: 6px 0 10px;
+  color: var(--muted);
+}
+
+.tasha-qr-panel a {
+  color: var(--violet);
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.tasha-qr-panel img {
+  width: 156px;
+  aspect-ratio: 1;
+  padding: 10px;
+  border: 1px solid rgba(23, 32, 47, 0.12);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .namehat-layout {
   display: grid;
   grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1fr);
@@ -1774,6 +1815,14 @@ a:focus-visible {
 
   .tasha-host-panel {
     position: static;
+  }
+
+  .tasha-qr-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .tasha-qr-panel img {
+    justify-self: center;
   }
 
   #blocks-view .tool-header {
