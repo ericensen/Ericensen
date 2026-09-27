@@ -549,6 +549,7 @@ function setShortcutLabel(button, label, shortcut, ariaLabel = label) {
 const celebrityTrainer = (() => {
   const storageKey = "ericensen-facecards-progress-v1";
   const view = document.querySelector("#facecards-view");
+  const trainer = view.querySelector(".facecards-trainer");
   const loading = document.querySelector("#facecards-loading");
   const card = document.querySelector("#facecards-card");
   const portrait = document.querySelector("#facecards-portrait");
@@ -723,6 +724,18 @@ const celebrityTrainer = (() => {
     if (mode === "choice") renderChoices();
   }
 
+  function advanceCard() {
+    chooseCard();
+    window.requestAnimationFrame(() => {
+      const topbarHeight = document.querySelector(".topbar")?.getBoundingClientRect().height || 0;
+      const top = window.scrollY + trainer.getBoundingClientRect().top - topbarHeight - 8;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: "instant"
+      });
+    });
+  }
+
   function setMode(nextMode) {
     mode = nextMode;
     for (const button of modeButtons) {
@@ -778,7 +791,7 @@ const celebrityTrainer = (() => {
   gradeButtons.forEach((button) => {
     button.addEventListener("click", () => gradeRecall(button.dataset.facecardsGrade));
   });
-  nextButton.addEventListener("click", chooseCard);
+  nextButton.addEventListener("click", advanceCard);
   resetButton.addEventListener("click", () => {
     if (!window.confirm("Reset all FaceCards learning progress on this device?")) return;
     progressById = {};
@@ -808,7 +821,7 @@ const celebrityTrainer = (() => {
     }
     const gradeKey = { a: "again", h: "hard", g: "good", e: "easy" }[key];
     if (gradeKey && mode === "recall") gradeRecall(gradeKey);
-    if (key === "n" && !nextButton.hidden) chooseCard();
+    if (key === "n" && !nextButton.hidden) advanceCard();
   });
 
   function setRouteActive(active) {
