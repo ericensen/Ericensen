@@ -6,10 +6,17 @@ import {
 } from "./lib/nameParser.mjs";
 import { mergeDrawQueue, shuffleNames } from "./lib/drawOrder.mjs";
 import { starHopperLevels } from "./lib/starHopperLevels.mjs";
+import {
+  applyCelebrityReview,
+  chooseNextCelebrity,
+  createCelebrityChoices,
+  masteryScore
+} from "./lib/celebrityLearning.mjs";
 
 const routes = new Map([
   ["home", document.querySelector("#home-view")],
   ["namehat", document.querySelector("#namehat-view")],
+  ["facecards", document.querySelector("#facecards-view")],
   ["tasha", document.querySelector("#tasha-view")],
   ["ecosystem", document.querySelector("#ecosystem-view")],
   ["starhopper", document.querySelector("#starhopper-view")],
@@ -23,6 +30,13 @@ const appRegistry = [
     kicker: "Private random picker",
     description: "Voice capture, editable rosters, hidden draws, and no paper slips.",
     accent: "teal"
+  },
+  {
+    id: "facecards",
+    title: "FaceCards",
+    kicker: "Celebrity memory",
+    description: "Learn 1,000 famous faces with smart reviews and two practice modes.",
+    accent: "navy"
   },
   {
     id: "tasha",
@@ -124,6 +138,7 @@ function renderRoute() {
   document.body.classList.toggle("blocks-route", activeRoute === "blocks");
   tetris.setRouteActive(activeRoute === "blocks");
   starHopper.setRouteActive(activeRoute === "starhopper");
+  celebrityTrainer.setRouteActive(activeRoute === "facecards");
   tashaTrivia.setRouteActive(activeRoute === "tasha");
   ecosystemLab.setRouteActive(activeRoute === "ecosystem");
 
@@ -530,6 +545,279 @@ function setShortcutLabel(button, label, shortcut, ariaLabel = label) {
   button.replaceChildren(labelNode, shortcutNode);
   button.setAttribute("aria-label", `${ariaLabel}, keyboard shortcut ${shortcut}`);
 }
+
+const celebrityTrainer = (() => {
+  const storageKey = "ericensen-facecards-progress-v1";
+  const view = document.querySelector("#facecards-view");
+  const loading = document.querySelector("#facecards-loading");
+  const card = document.querySelector("#facecards-card");
+  const portrait = document.querySelector("#facecards-portrait");
+  const rank = document.querySelector("#facecards-rank");
+  const field = document.querySelector("#facecards-field");
+  const prompt = document.querySelector("#facecards-prompt");
+  const masteryValue = document.querySelector("#facecards-mastery-value");
+  const choicePanel = document.querySelector("#facecards-choice-panel");
+  const recallPanel = document.querySelector("#facecards-recall-panel");
+  const revealButton = document.querySelector("#facecards-reveal");
+  const answer = document.querySelector("#facecards-answer");
+  const result = document.querySelector("#facecards-result");
+  const name = document.querySelector("#facecards-name");
+  const knownFor = document.querySelector("#facecards-known-for");
+  const gradePanel = document.querySelector("#facecards-grade-panel");
+  const nextButton = document.querySelector("#facecards-next");
+  const credit = document.querySelector("#facecards-credit");
+  const seen = document.querySelector("#facecards-seen");
+  const mastered = document.querySelector("#facecards-mastered");
+  const due = document.querySelector("#facecards-due");
+  const average = document.querySelector("#facecards-average");
+  const catalogCount = document.querySelector("#facecards-catalog-count");
+  const progressBar = document.querySelector("#facecards-progress-bar");
+  const sessionCount = document.querySelector("#facecards-session-count");
+  const resetButton = document.querySelector("#facecards-reset");
+  const modeButtons = [...document.querySelectorAll("[data-facecards-mode]")];
+  const gradeButtons = [...document.querySelectorAll("[data-facecards-grade]")];
+
+  let catalog = [];
+  let progressById = {};
+  let mode = "choice";
+  let current = null;
+  let previousId = "";
+  let sessionReviews = 0;
+  let routeActive = false;
+  let loaded = false;
+  let answered = false;
+
+  function loadSavedProgress() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      progressById = saved.progressById && typeof saved.progressById === "object"
+        ? saved.progressById
+        : {};
+      mode = saved.mode === "recall" ? "recall" : "choice";
+    } catch {
+      progressById = {};
+      mode = "choice";
+    }
+  }
+
+  function saveProgress() {
+    localStorage.setItem(storageKey, JSON.stringify({ progressById, mode }));
+  }
+
+  function briefDescription(value) {
+    const compact = String(value || "Known public figure.").replace(/\s+/g, " ").trim();
+    if (compact.length <= 310) return compact;
+    const shortened = compact.slice(0, 307);
+    return `${shortened.slice(0, shortened.lastIndexOf(" "))}...`;
+  }
+
+  function renderStats() {
+    const progressEntries = Object.values(progressById).filter((item) => item?.reviews);
+    const scores = progressEntries.map((item) => masteryScore(item));
+    const masteredCount = scores.filter((score) => score >= 75).length;
+    const dueCount = progressEntries.filter((item) => item.dueAt <= Date.now()).length;
+    const averageScore = scores.length
+      ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+      : 0;
+
+    seen.textContent = progressEntries.length.toLocaleString();
+    mastered.textContent = masteredCount.toLocaleString();
+    due.textContent = dueCount.toLocaleString();
+    average.textContent = averageScore;
+    catalogCount.textContent = catalog.length.toLocaleString();
+    progressBar.style.width = `${catalog.length ? (progressEntries.length / catalog.length) * 100 : 0}%`;
+    sessionCount.textContent = `${sessionReviews} reviewed`;
+  }
+
+  function renderCredit() {
+    credit.replaceChildren();
+    if (!current) return;
+    const label = document.createElement("span");
+    label.textContent = `Portrait: ${current.imageAuthor} · ${current.imageLicense}`;
+    const links = document.createElement("span");
+    const sourceLink = document.createElement("a");
+    sourceLink.href = current.imageSourceUrl;
+    sourceLink.target = "_blank";
+    sourceLink.rel = "noreferrer";
+    sourceLink.textContent = "Image source";
+    const separator = document.createTextNode(" · ");
+    const articleLink = document.createElement("a");
+    articleLink.href = current.wikipediaUrl;
+    articleLink.target = "_blank";
+    articleLink.rel = "noreferrer";
+    articleLink.textContent = "Wikipedia";
+    links.append(sourceLink, separator, articleLink);
+    credit.append(label, links);
+  }
+
+  function revealAnswer(message, tone = "") {
+    answer.hidden = false;
+    result.textContent = message;
+    result.dataset.tone = tone;
+    name.textContent = current.name;
+    knownFor.textContent = briefDescription(current.knownFor);
+    portrait.alt = `Portrait of ${current.name}`;
+    renderCredit();
+  }
+
+  function recordReview(grade) {
+    progressById[current.id] = applyCelebrityReview(progressById[current.id], grade);
+    sessionReviews += 1;
+    saveProgress();
+    masteryValue.textContent = masteryScore(progressById[current.id]);
+    renderStats();
+  }
+
+  function answerChoice(selectedId) {
+    if (answered) return;
+    answered = true;
+    const correct = selectedId === current.id;
+    for (const button of choicePanel.querySelectorAll("button")) {
+      button.disabled = true;
+      if (button.dataset.celebrityId === current.id) button.classList.add("correct");
+      if (button.dataset.celebrityId === selectedId && !correct) button.classList.add("incorrect");
+    }
+    revealAnswer(correct ? "Correct" : "Not this time", correct ? "" : "miss");
+    recordReview(correct ? "good" : "again");
+    nextButton.hidden = false;
+    nextButton.focus();
+  }
+
+  function renderChoices() {
+    choicePanel.replaceChildren();
+    const choices = createCelebrityChoices(current, catalog);
+    choices.forEach((celebrity, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.celebrityId = celebrity.id;
+      const label = document.createElement("span");
+      label.textContent = celebrity.name;
+      const key = document.createElement("kbd");
+      key.textContent = String(index + 1);
+      button.append(label, key);
+      button.addEventListener("click", () => answerChoice(celebrity.id));
+      choicePanel.append(button);
+    });
+  }
+
+  function chooseCard() {
+    const options = catalog.length > 1
+      ? catalog.filter((celebrity) => celebrity.id !== previousId)
+      : catalog;
+    current = chooseNextCelebrity(options, progressById);
+    if (!current) return;
+    previousId = current.id;
+    answered = false;
+    portrait.src = current.image;
+    portrait.alt = "Celebrity portrait";
+    rank.textContent = `#${current.rank} of ${catalog.length.toLocaleString()}`;
+    field.textContent = current.field;
+    masteryValue.textContent = masteryScore(progressById[current.id]);
+    prompt.textContent = mode === "choice" ? "Who is this?" : "Do you know this face?";
+    choicePanel.hidden = mode !== "choice";
+    recallPanel.hidden = mode !== "recall";
+    answer.hidden = true;
+    gradePanel.hidden = true;
+    nextButton.hidden = true;
+    credit.replaceChildren();
+    if (mode === "choice") renderChoices();
+  }
+
+  function setMode(nextMode) {
+    mode = nextMode;
+    for (const button of modeButtons) {
+      const active = button.dataset.facecardsMode === mode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+    saveProgress();
+    if (loaded) chooseCard();
+  }
+
+  function revealRecall() {
+    if (mode !== "recall" || answered) return;
+    answered = true;
+    recallPanel.hidden = true;
+    revealAnswer("Check your answer, then grade yourself");
+    gradePanel.hidden = false;
+    gradeButtons[2]?.focus();
+  }
+
+  function gradeRecall(grade) {
+    if (mode !== "recall" || !answered || gradePanel.hidden) return;
+    recordReview(grade);
+    result.textContent = `${grade[0].toUpperCase()}${grade.slice(1)} saved`;
+    gradePanel.hidden = true;
+    nextButton.hidden = false;
+    nextButton.focus();
+  }
+
+  async function loadCatalog() {
+    if (loaded) return;
+    loadSavedProgress();
+    try {
+      const response = await fetch("./data/celebrities.json");
+      if (!response.ok) throw new Error("Catalog unavailable");
+      const payload = await response.json();
+      catalog = Array.isArray(payload.celebrities) ? payload.celebrities : [];
+      if (!catalog.length) throw new Error("Catalog empty");
+      loaded = true;
+      loading.hidden = true;
+      card.hidden = false;
+      renderStats();
+      setMode(mode);
+    } catch {
+      loading.textContent = "The portrait deck could not be loaded. Please refresh and try again.";
+    }
+  }
+
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => setMode(button.dataset.facecardsMode));
+  });
+  revealButton.addEventListener("click", revealRecall);
+  gradeButtons.forEach((button) => {
+    button.addEventListener("click", () => gradeRecall(button.dataset.facecardsGrade));
+  });
+  nextButton.addEventListener("click", chooseCard);
+  resetButton.addEventListener("click", () => {
+    if (!window.confirm("Reset all FaceCards learning progress on this device?")) return;
+    progressById = {};
+    sessionReviews = 0;
+    saveProgress();
+    renderStats();
+    chooseCard();
+  });
+  portrait.addEventListener("error", () => {
+    if (!routeActive || !loaded) return;
+    window.setTimeout(chooseCard, 150);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (!routeActive || !loaded) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.matches("input, textarea, select") || target.isContentEditable)) return;
+    const key = event.key.toLowerCase();
+    if (key === "m") setMode("choice");
+    if (key === "r") setMode("recall");
+    if (mode === "choice" && !answered && /^[1-4]$/.test(event.key)) {
+      event.preventDefault();
+      choicePanel.querySelectorAll("button")[Number(event.key) - 1]?.click();
+    }
+    if (mode === "recall" && !answered && (event.key === " " || event.code === "Space")) {
+      event.preventDefault();
+      revealRecall();
+    }
+    const gradeKey = { a: "again", h: "hard", g: "good", e: "easy" }[key];
+    if (gradeKey && mode === "recall") gradeRecall(gradeKey);
+    if (key === "n" && !nextButton.hidden) chooseCard();
+  });
+
+  function setRouteActive(active) {
+    routeActive = active;
+    if (active) loadCatalog();
+  }
+
+  return { setRouteActive };
+})();
 
 const tashaTrivia = (() => {
   // Paste the deployed Google Apps Script /exec URL here to enable shared party mode.

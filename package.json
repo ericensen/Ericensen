@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server.mjs",
     "test": "node tests/run.mjs",
-    "build": "node tests/run.mjs"
+    "build": "node tests/run.mjs",
+    "catalog:celebrities": "node scripts/buildCelebrityCatalog.mjs --count=1000 --months=36 --download-images"
   }
 }

@@ -6,7 +6,7 @@
     <title>Ericensen Home</title>
     <meta
       name="description"
-      content="A personal homepage and app hub for Ericensen, with NameHat, Tasha Trivia, Eco Lab, Star Hopper, and a simple block stacking game."
+      content="A personal homepage and app hub for Ericensen, with FaceCards, NameHat, Tasha Trivia, Eco Lab, Star Hopper, and a simple block stacking game."
     >
     <meta name="theme-color" content="#f7f5ef">
     <meta property="og:title" content="Ericensen Home">
@@ -27,6 +27,7 @@
         <nav class="top-nav" aria-label="Primary navigation">
           <a href="#home" data-nav="home">Home</a>
           <a href="#namehat" data-nav="namehat">NameHat</a>
+          <a href="#facecards" data-nav="facecards">FaceCards</a>
           <a href="#tasha" data-nav="tasha">Tasha</a>
           <a href="#ecosystem" data-nav="ecosystem">Eco</a>
           <a href="#starhopper" data-nav="starhopper">Star Hopper</a>
@@ -56,6 +57,7 @@
               <div class="hub-chip chip-three">Star Hopper</div>
               <div class="hub-chip chip-four">Eco</div>
               <div class="hub-chip chip-five">Tasha Trivia</div>
+              <div class="hub-chip chip-six">FaceCards</div>
             </div>
           </div>
 
@@ -224,6 +226,105 @@
                 <button id="hide-name-button" class="button primary" type="button">Close Name</button>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="facecards-view" class="view facecards-view" aria-labelledby="facecards-title">
+          <div class="tool-header facecards-header">
+            <div>
+              <p class="eyebrow">Celebrity memory</p>
+              <h1 id="facecards-title">FaceCards</h1>
+              <p class="tool-subtitle">Learn the people behind the names, one face at a time.</p>
+            </div>
+            <div class="tool-stats" aria-label="FaceCards progress">
+              <span><strong id="facecards-seen">0</strong>Seen</span>
+              <span><strong id="facecards-mastered">0</strong>Mastered</span>
+              <span><strong id="facecards-due">0</strong>Due</span>
+            </div>
+          </div>
+
+          <div class="facecards-layout">
+            <section class="facecards-trainer" aria-label="Celebrity practice card">
+              <div class="facecards-toolbar">
+                <div class="facecards-modes" role="group" aria-label="Practice mode">
+                  <button class="active" type="button" data-facecards-mode="choice" aria-pressed="true">
+                    Multiple choice <kbd>M</kbd>
+                  </button>
+                  <button type="button" data-facecards-mode="recall" aria-pressed="false">
+                    Face only <kbd>R</kbd>
+                  </button>
+                </div>
+                <span id="facecards-session-count" class="facecards-session-count">0 reviewed</span>
+              </div>
+
+              <div id="facecards-loading" class="facecards-loading" role="status">Preparing the portrait deck...</div>
+
+              <div id="facecards-card" class="facecards-card" hidden>
+                <figure class="facecards-portrait-wrap">
+                  <img id="facecards-portrait" class="facecards-portrait" src="" alt="Celebrity portrait">
+                  <figcaption>
+                    <span id="facecards-rank">Card</span>
+                    <strong id="facecards-field">Public figure</strong>
+                  </figcaption>
+                </figure>
+
+                <div class="facecards-question">
+                  <div class="facecards-question-heading">
+                    <div>
+                      <p class="eyebrow">Identify this person</p>
+                      <h2 id="facecards-prompt">Who is this?</h2>
+                    </div>
+                    <div class="facecards-mastery" aria-label="Current mastery">
+                      <strong id="facecards-mastery-value">0</strong>
+                      <span>Mastery</span>
+                    </div>
+                  </div>
+
+                  <div id="facecards-choice-panel" class="facecards-choices" aria-label="Name choices"></div>
+
+                  <div id="facecards-recall-panel" class="facecards-recall" hidden>
+                    <button id="facecards-reveal" class="button primary" type="button">
+                      Reveal name <kbd>Space</kbd>
+                    </button>
+                    <p>Say the name to yourself before revealing it.</p>
+                  </div>
+
+                  <div id="facecards-answer" class="facecards-answer" hidden aria-live="polite">
+                    <p id="facecards-result" class="facecards-result"></p>
+                    <h3 id="facecards-name"></h3>
+                    <p id="facecards-known-for"></p>
+
+                    <div id="facecards-grade-panel" class="facecards-grades" hidden aria-label="Grade your answer">
+                      <button type="button" data-facecards-grade="again">Again <kbd>A</kbd></button>
+                      <button type="button" data-facecards-grade="hard">Hard <kbd>H</kbd></button>
+                      <button type="button" data-facecards-grade="good">Good <kbd>G</kbd></button>
+                      <button type="button" data-facecards-grade="easy">Easy <kbd>E</kbd></button>
+                    </div>
+
+                    <button id="facecards-next" class="button primary facecards-next" type="button" hidden>
+                      Next face <kbd>N</kbd>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="facecards-progress-panel" aria-labelledby="facecards-progress-title">
+              <div>
+                <p class="eyebrow">Your deck</p>
+                <h2 id="facecards-progress-title">Progress</h2>
+              </div>
+              <div class="facecards-overview">
+                <div><strong id="facecards-average">0</strong><span>Average mastery</span></div>
+                <div><strong id="facecards-catalog-count">1,000</strong><span>People in deck</span></div>
+              </div>
+              <div class="facecards-progress-track" aria-hidden="true">
+                <span id="facecards-progress-bar"></span>
+              </div>
+              <button id="facecards-reset" class="button ghost danger" type="button">Reset learning progress</button>
+              <p class="facecards-storage-note">Your learning history stays on this device.</p>
+              <div id="facecards-credit" class="facecards-credit"></div>
+            </aside>
           </div>
         </section>
 
