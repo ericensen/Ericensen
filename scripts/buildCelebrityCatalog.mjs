@@ -1,27 +1,29 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
-import { extname, join } from "node:path";
+import { access, mkdir, readdir, unlink, writeFile } from "node:fs/promises";
+import { extname } from "node:path";
 
 const ROOT = new URL("../", import.meta.url);
 const DATA_PATH = new URL("../data/celebrities.json", import.meta.url);
 const IMAGE_DIR = new URL("../assets/celebrities/", import.meta.url);
-const USER_AGENT = "EricensenFaceCards/1.0 (https://github.com/ericensen/Ericensen)";
+const USER_AGENT = "EricensenFaceCards/1.1 (https://github.com/ericensen/Ericensen)";
 const TARGET_COUNT = Number(process.argv.find((arg) => arg.startsWith("--count="))?.split("=")[1] || 1000);
 const DOWNLOAD_IMAGES = process.argv.includes("--download-images");
-const MONTH_COUNT = Number(process.argv.find((arg) => arg.startsWith("--months="))?.split("=")[1] || 48);
+const SAMPLE_COUNT = Number(process.argv.find((arg) => arg.startsWith("--samples="))?.split("=")[1] || 156);
+let collectedSampleCount = 0;
 
 function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function getJson(url, attempt = 1) {
+async function getJson(url, attempt = 1, allowNotFound = false) {
   const response = await fetch(url, {
     headers: { "Api-User-Agent": USER_AGENT, "User-Agent": USER_AGENT }
   });
   if (response.status === 429 || response.status >= 500) {
     if (attempt >= 5) throw new Error(`Request failed (${response.status}): ${url}`);
     await sleep(500 * (2 ** attempt));
-    return getJson(url, attempt + 1);
+    return getJson(url, attempt + 1, allowNotFound);
   }
+  if (response.status === 404 && allowNotFound) return null;
   if (!response.ok) throw new Error(`Request failed (${response.status}): ${url}`);
   return response.json();
 }
@@ -34,33 +36,50 @@ function batch(values, size) {
   return groups;
 }
 
-function recentCompleteMonths(count) {
-  const cursor = new Date();
-  cursor.setUTCDate(1);
-  cursor.setUTCMonth(cursor.getUTCMonth() - 1);
+function recentSampleDates(count) {
+  const now = new Date();
+  const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
   return Array.from({ length: count }, () => {
-    const month = { year: cursor.getUTCFullYear(), month: cursor.getUTCMonth() + 1 };
-    cursor.setUTCMonth(cursor.getUTCMonth() - 1);
-    return month;
+    const date = new Date(cursor);
+    cursor.setUTCDate(cursor.getUTCDate() - 7);
+    return date;
   });
 }
 
 async function getPopularTitles() {
   const totals = new Map();
-  for (const { year, month } of recentCompleteMonths(MONTH_COUNT)) {
-    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia.org/all-access/${year}/${String(month).padStart(2, "0")}/all-days`;
-    const data = await getJson(url);
-    for (const article of data.items?.[0]?.articles || []) {
-      const title = article.article.replaceAll("_", " ");
-      if (title.startsWith("Special:") || title === "Main Page" || title === "-" || title.includes("List of")) continue;
-      totals.set(title, (totals.get(title) || 0) + article.views);
+  for (const date of recentSampleDates(SAMPLE_COUNT * 2)) {
+    if (collectedSampleCount >= SAMPLE_COUNT) break;
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top-per-country/US/all-access/${year}/${month}/${day}`;
+    const data = await getJson(url, 1, true);
+    if (!data) {
+      process.stdout.write(`Skipped unavailable U.S. rankings for ${year}-${month}-${day}\n`);
+      continue;
     }
-    process.stdout.write(`Collected ${year}-${String(month).padStart(2, "0")}\n`);
+    collectedSampleCount += 1;
+    for (const article of data.items?.[0]?.articles || []) {
+      if (article.project !== "en.wikipedia") continue;
+      const title = article.article.replaceAll("_", " ");
+      if (title.includes(":") || title === "Main Page" || title === "-" || title.startsWith("List of ")) continue;
+      const current = totals.get(title) || { title, views: 0, appearances: 0, rankScore: 0 };
+      current.views += Number(article.views_ceil || 0);
+      current.appearances += 1;
+      current.rankScore += Math.max(0, 1001 - Number(article.rank || 1001));
+      totals.set(title, current);
+    }
+    process.stdout.write(`Collected U.S. rankings for ${year}-${month}-${day}\n`);
   }
-  return [...totals.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, Math.max(4500, TARGET_COUNT * 5))
-    .map(([title, views]) => ({ title, views }));
+  return [...totals.values()]
+    .map((item) => ({
+      ...item,
+      // Repeated U.S. interest is a better fame signal than one exceptional news day.
+      usScore: item.appearances * 1_000_000 + item.rankScore * 100 + Math.log1p(item.views) * 1_000
+    }))
+    .sort((a, b) => b.usScore - a.usScore)
+    .slice(0, Math.max(6000, TARGET_COUNT * 6));
 }
 
 async function getWikipediaPages(popularTitles) {
@@ -86,7 +105,9 @@ async function getWikipediaPages(popularTitles) {
         pages.push({
           id: page.pageprops.wikibase_item,
           wikipediaTitle: page.title,
-          views: ranked?.views || 0,
+          usViews: ranked?.views || 0,
+          usAppearances: ranked?.appearances || 0,
+          usScore: ranked?.usScore || 0,
           extract: page.extract || ""
         });
       }
@@ -100,6 +121,7 @@ const GENDERS = new Map([
   ["Q6581097", "male"],
   ["Q6581072", "female"]
 ]);
+const US_FAMOUS_SOCCER_PLAYERS = new Set(["Q11571", "Q615", "Q10520", "Q834"]);
 
 const FIELD_BY_OCCUPATION = new Map([
   ["Q33999", "Film & TV"], ["Q10800557", "Film & TV"], ["Q2526255", "Film & TV"],
@@ -114,6 +136,12 @@ const FIELD_BY_OCCUPATION = new Map([
 
 function claimId(entity, property) {
   return entity.claims?.[property]?.[0]?.mainsnak?.datavalue?.value?.id || "";
+}
+
+function claimIds(entity, property) {
+  return (entity.claims?.[property] || [])
+    .map((claim) => claim.mainsnak?.datavalue?.value?.id)
+    .filter(Boolean);
 }
 
 function claimTime(entity, property) {
@@ -155,6 +183,10 @@ async function getPeople(pages) {
     for (const entity of Object.values(data.entities || {})) {
       const page = pageById.get(entity.id);
       if (!page || claimId(entity, "P31") !== "Q5" || !imageName(entity) || diedBefore1900(entity)) continue;
+      const occupations = claimIds(entity, "P106");
+      const countries = claimIds(entity, "P27");
+      const isInternationalSoccerPlayer = occupations.includes("Q937857") && !countries.includes("Q30");
+      if (isInternationalSoccerPlayer && !US_FAMOUS_SOCCER_PLAYERS.has(entity.id)) continue;
       const genderId = claimId(entity, "P21");
       people.push({
         id: entity.id,
@@ -165,12 +197,14 @@ async function getPeople(pages) {
         wikipediaTitle: page.wikipediaTitle,
         wikipediaUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.wikipediaTitle.replaceAll(" ", "_"))}`,
         imageFile: imageName(entity),
-        views: page.views
+        usViews: page.usViews,
+        usAppearances: page.usAppearances,
+        usScore: page.usScore
       });
     }
     await sleep(45);
   }
-  return people.sort((a, b) => b.views - a.views);
+  return people.sort((a, b) => b.usScore - a.usScore);
 }
 
 function plainText(value = "") {
@@ -225,7 +259,7 @@ function extensionFor(person) {
   return mimeExtension.get(person.imageMime) || extname(new URL(person.imageUrl).pathname) || ".jpg";
 }
 
-async function downloadImage(person) {
+async function downloadImage(person, attempt = 1) {
   const extension = extensionFor(person);
   const fileName = `${person.id}${extension}`;
   try {
@@ -235,6 +269,11 @@ async function downloadImage(person) {
     // The portrait is not cached locally yet.
   }
   const response = await fetch(person.imageUrl, { headers: { "User-Agent": USER_AGENT } });
+  if (response.status === 429 || response.status >= 500) {
+    if (attempt >= 5) throw new Error(`Image download failed (${response.status}): ${person.imageUrl}`);
+    await sleep(1000 * (2 ** attempt));
+    return downloadImage(person, attempt + 1);
+  }
   if (!response.ok) throw new Error(`Image download failed (${response.status}): ${person.imageUrl}`);
   await writeFile(new URL(fileName, IMAGE_DIR), Buffer.from(await response.arrayBuffer()));
   return { ...person, image: `assets/celebrities/${fileName}` };
@@ -254,6 +293,14 @@ async function mapLimited(values, limit, mapper) {
   return results;
 }
 
+async function pruneUnusedImages(catalog) {
+  const retained = new Set(catalog.map((person) => person.image.split("/").at(-1)));
+  const entries = await readdir(IMAGE_DIR, { withFileTypes: true });
+  const unused = entries.filter((entry) => entry.isFile() && !retained.has(entry.name));
+  await Promise.all(unused.map((entry) => unlink(new URL(entry.name, IMAGE_DIR))));
+  process.stdout.write(`Pruned ${unused.length} unused portraits\n`);
+}
+
 async function main() {
   await mkdir(new URL("../data/", import.meta.url), { recursive: true });
   await mkdir(IMAGE_DIR, { recursive: true });
@@ -261,9 +308,9 @@ async function main() {
   const pages = await getWikipediaPages(titles);
   const people = await getPeople(pages);
   const withImages = await addImageMetadata(people.slice(0, TARGET_COUNT + 250));
-  const selected = withImages.sort((a, b) => b.views - a.views).slice(0, TARGET_COUNT);
+  const selected = withImages.sort((a, b) => b.usScore - a.usScore).slice(0, TARGET_COUNT);
   if (selected.length < TARGET_COUNT) {
-    throw new Error(`Only found ${selected.length} eligible people; increase --months and retry.`);
+    throw new Error(`Only found ${selected.length} eligible people; increase --samples and retry.`);
   }
 
   const catalog = DOWNLOAD_IMAGES
@@ -274,11 +321,13 @@ async function main() {
     })
     : selected.map((person) => ({ ...person, image: person.imageUrl }));
 
+  if (DOWNLOAD_IMAGES) await pruneUnusedImages(catalog);
+
   const payload = {
     generatedAt: new Date().toISOString(),
-    methodology: `Top English Wikipedia page views across ${MONTH_COUNT} complete months; humans with Wikimedia Commons portraits; excludes people known to have died before 1900.`,
+    methodology: `Repeated appearances in United States Wikimedia top-page rankings across ${collectedSampleCount} weekly snapshots; English Wikipedia humans with Commons portraits; excludes people known to have died before 1900.`,
     count: catalog.length,
-    celebrities: catalog.map(({ imageUrl, imageMime, imageFile, views, ...person }, index) => ({
+    celebrities: catalog.map(({ imageUrl, imageMime, imageFile, usViews, usAppearances, usScore, ...person }, index) => ({
       ...person,
       rank: index + 1
     }))

@@ -25,7 +25,7 @@ Then open `http://localhost:4173/`.
 npm run catalog:celebrities
 ```
 
-The catalog builder uses Wikimedia page-view data and Commons image metadata. It keeps only
+The catalog builder uses repeated U.S. Wikimedia page-view rankings and Commons image metadata. It keeps only
 humans with reusable portraits and excludes people known to have died before 1900.
 
 ## Add another app

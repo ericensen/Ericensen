@@ -35,7 +35,7 @@ const appRegistry = [
     id: "facecards",
     title: "FaceCards",
     kicker: "Celebrity memory",
-    description: "Learn 1,000 famous faces with smart reviews and two practice modes.",
+    description: "Learn 1,000 faces familiar to American audiences with smart reviews and two practice modes.",
     accent: "navy"
   },
   {

@@ -6,13 +6,23 @@ import {
 } from "../lib/celebrityLearning.mjs";
 
 const now = Date.UTC(2026, 0, 1);
+const again = applyCelebrityReview(undefined, "again", now);
+const hard = applyCelebrityReview(undefined, "hard", now);
 const firstGood = applyCelebrityReview(undefined, "good", now);
+const firstEasy = applyCelebrityReview(undefined, "easy", now);
 const secondGood = applyCelebrityReview(firstGood, "good", now + 86_400_000);
 const easy = applyCelebrityReview(secondGood, "easy", now + 2 * 86_400_000);
 
+assert.equal(masteryScore(again), 0);
+assert.equal(masteryScore(hard), 25);
+assert.equal(masteryScore(firstGood), 58);
+assert.equal(masteryScore(firstEasy), 82);
+assert.equal(hard.correct, 0);
+assert.equal(hard.streak, 0);
 assert.equal(firstGood.streak, 1);
 assert.equal(firstGood.intervalDays, 1);
 assert.ok(secondGood.intervalDays > firstGood.intervalDays);
+assert.ok(masteryScore(secondGood) > masteryScore(firstGood));
 assert.ok(easy.intervalDays > secondGood.intervalDays);
 assert.ok(masteryScore(easy) > masteryScore(firstGood));
 
